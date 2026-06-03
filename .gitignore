@@ -1,0 +1,31 @@
+# Build outputs
+target/
+src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri generated
+src-tauri/gen/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots
+*.png
+!src-tauri/icons/
+
+# Frontend
+ui/node_modules/
+ui/dist/
+
+# Temp
+*.tmp
+*.log
