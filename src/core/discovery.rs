@@ -127,12 +127,7 @@ impl FileDiscovery {
         // e.g., "app.log.2024-01-01" -> suffix "2024-01-01" is a date -> rotated
         // We need at least 2 dots for this to be a rotated log (e.g., "app.log.1")
         let group_name = if let Some(second_last_dot) = stripped.rfind('.') {
-            // Find the last dot (which should be after second_last_dot)
-            let after_first = &stripped[..second_last_dot];
-            // Count dots before second_last_dot
-            let dot_count = after_first.chars().filter(|&c| c == '.').count();
-
-            // If there are no more dots before this one (e.g., "app.log.1"), check suffix
+            // Check suffix after last dot
             let suffix = &stripped[second_last_dot + 1..];
             let is_number = suffix.parse::<u32>().is_ok();
             let is_date = chrono::NaiveDate::parse_from_str(suffix, "%Y-%m-%d").is_ok()

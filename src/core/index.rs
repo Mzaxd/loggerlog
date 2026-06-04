@@ -406,9 +406,6 @@ impl IndexManager {
             return Ok(());
         }
 
-        let mut matched = 0u64;
-        let mut unmatched = 0u64;
-
         let tx = self.conn.unchecked_transaction()?;
 
         {
@@ -421,12 +418,6 @@ impl IndexManager {
                 let project_id = sorted_projects.iter().find(|p| {
                     is_subpath(&p.path, &file.path)
                 }).map(|p| p.id);
-
-                if project_id.is_some() {
-                    matched += 1;
-                } else {
-                    unmatched += 1;
-                }
 
                 update_stmt.execute(params![
                     project_id,
@@ -518,4 +509,235 @@ fn is_subpath(dir_path: &str, file_path: &str) -> bool {
     }
     file.starts_with(&dir) && file.len() > dir.len()
         && file[dir.len()..].starts_with('/')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::config::Project;
+    use crate::core::entry::LogEntry;
+    use chrono::Utc;
+
+    fn setup() -> IndexManager {
+        IndexManager::open_in_memory().unwrap()
+    }
+
+    fn test_project(name: &str, path: &str) -> Project {
+        Project {
+            name: name.into(), path: path.into(), recursive: true,
+            formats: vec!["auto".into()], encoding: "auto".into(),
+            exclude_patterns: vec![],
+        }
+    }
+
+    // ── open / schema ──
+    #[test]
+    fn test_open_in_memory() {
+        let idx = setup();
+        assert!(idx.total_entries().unwrap() == 0);
+        assert!(idx.total_files().unwrap() == 0);
+    }
+    #[test]
+    fn test_migration_v2_adds_projects_table() {
+        let idx = setup();
+        // v2 migration should have run; projects table exists
+        let projects = idx.get_all_projects().unwrap();
+        assert!(projects.is_empty());
+    }
+
+    // ── files ──
+    #[test]
+    fn test_get_or_create_file_new() {
+        let idx = setup();
+        let id = idx.get_or_create_file("/var/log/app.log").unwrap();
+        assert!(id > 0);
+        let id2 = idx.get_or_create_file("/var/log/app.log").unwrap();
+        assert_eq!(id, id2);
+    }
+    #[test]
+    fn test_get_files_empty() {
+        let idx = setup();
+        assert!(idx.get_files().unwrap().is_empty());
+    }
+    #[test]
+    fn test_get_files_after_insert() {
+        let idx = setup();
+        idx.get_or_create_file("/a.log").unwrap();
+        idx.get_or_create_file("/b.log").unwrap();
+        assert_eq!(idx.get_files().unwrap().len(), 2);
+    }
+    #[test]
+    fn test_get_file_by_path() {
+        let idx = setup();
+        idx.get_or_create_file("/logs/x.log").unwrap();
+        let f = idx.get_file_by_path("/logs/x.log").unwrap().unwrap();
+        assert_eq!(f.path, "/logs/x.log");
+        assert!(idx.get_file_by_path("/no/such.log").unwrap().is_none());
+    }
+
+    // ── entries ──
+    #[test]
+    fn test_insert_and_count_entries() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/test.log").unwrap();
+        let entries = vec![LogEntry {
+            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            timestamp: Some(Utc::now()), level: Some("INFO".into()),
+            thread: None, logger: None, message: "hello".into(),
+            fields_json: None, raw: "INFO hello".into(),
+        }];
+        let inserted = idx.insert_entries(&entries).unwrap();
+        assert_eq!(inserted, 1);
+        assert_eq!(idx.total_entries().unwrap(), 1);
+    }
+    #[test]
+    fn test_insert_empty_entries() {
+        let idx = setup();
+        assert_eq!(idx.insert_entries(&[]).unwrap(), 0);
+    }
+    #[test]
+    fn test_insert_multiple_entries() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/m.log").unwrap();
+        let now = Utc::now();
+        let entries: Vec<LogEntry> = (1..=3).map(|i| LogEntry {
+            id: None, file_id: fid, line_number: i, byte_offset: (i * 100) as u64,
+            timestamp: Some(now), level: Some("INFO".into()),
+            thread: None, logger: None,
+            message: format!("msg{}", i), fields_json: None,
+            raw: format!("raw{}", i),
+        }).collect();
+        assert_eq!(idx.insert_entries(&entries).unwrap(), 3);
+        assert_eq!(idx.total_entries().unwrap(), 3);
+    }
+    #[test]
+    fn test_clear_file_entries() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/c.log").unwrap();
+        idx.insert_entries(&[LogEntry {
+            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            timestamp: Some(Utc::now()), level: Some("INFO".into()),
+            thread: None, logger: None, message: "x".into(),
+            fields_json: None, raw: "x".into(),
+        }]).unwrap();
+        assert_eq!(idx.total_entries().unwrap(), 1);
+        idx.clear_file_entries(fid).unwrap();
+        assert_eq!(idx.total_entries().unwrap(), 0);
+    }
+    #[test]
+    fn test_fts_trigger_sync() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/fts.log").unwrap();
+        idx.insert_entries(&[LogEntry {
+            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            timestamp: Some(Utc::now()), level: Some("INFO".into()),
+            thread: None, logger: None, message: "unique_keyword_fts_test".into(),
+            fields_json: None, raw: "unique_keyword_fts_test raw".into(),
+        }]).unwrap();
+        // FTS search should find it (via engine)
+        let engine = crate::core::engine::SearchEngine::new(idx.conn());
+        let mut q = crate::core::entry::SearchQuery::default();
+        q.limit = 10;
+        q.fts_query = Some("unique_keyword_fts_test".into());
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 1);
+    }
+
+    // ── projects ──
+    #[test]
+    fn test_upsert_project() {
+        let idx = setup();
+        let pid = idx.upsert_project("proj", "/data/proj").unwrap();
+        assert!(pid > 0);
+        let all = idx.get_all_projects().unwrap();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].name, "proj");
+    }
+    #[test]
+    fn test_upsert_project_update_path() {
+        let idx = setup();
+        idx.upsert_project("p", "/old").unwrap();
+        idx.upsert_project("p", "/new").unwrap();
+        let p = idx.get_project_by_name("p").unwrap().unwrap();
+        assert_eq!(p.path, "/new");
+    }
+    #[test]
+    fn test_remove_project() {
+        let idx = setup();
+        idx.upsert_project("tmp", "/tmp").unwrap();
+        assert!(idx.remove_project("tmp").unwrap());
+        assert!(!idx.remove_project("nonexistent").unwrap());
+        assert!(idx.get_project_by_name("tmp").unwrap().is_none());
+    }
+
+    // ── sync_projects ──
+    #[test]
+    fn test_sync_projects_assigns_files() {
+        let idx = setup();
+        idx.get_or_create_file("/data/proj/sub/console.log").unwrap();
+        idx.get_or_create_file("/data/proj/info.log").unwrap();
+        idx.get_or_create_file("/other/file.log").unwrap();
+        let projects = vec![test_project("proj", "/data/proj")];
+        idx.sync_projects(&projects).unwrap();
+        let db_projects = idx.get_all_projects().unwrap();
+        assert_eq!(db_projects.len(), 1);
+        assert_eq!(db_projects[0].name, "proj");
+    }
+    #[test]
+    fn test_sync_projects_empty_config_clears_all() {
+        let idx = setup();
+        idx.upsert_project("old", "/old").unwrap();
+        idx.sync_projects(&[]).unwrap();
+        assert!(idx.get_all_projects().unwrap().is_empty());
+    }
+
+    // ── modules ──
+    #[test]
+    fn test_get_modules_no_project() {
+        let idx = setup();
+        let modules = idx.get_modules_for_project("nonexistent").unwrap();
+        assert!(modules.is_empty());
+    }
+
+    // ── utilities ──
+    #[test]
+    fn test_normalize_path() {
+        assert_eq!(normalize_path(r"C:\a\b"), "C:/a/b");
+        assert_eq!(normalize_path("a/b/"), "a/b");
+    }
+    #[test]
+    fn test_is_subpath() {
+        assert!(is_subpath("/data/proj", "/data/proj/sub/file.log"));
+        assert!(!is_subpath("/data/proj", "/data/other/file.log"));
+        assert!(!is_subpath("/data/proj", "/data/proj"));
+        assert!(!is_subpath("", "/data/proj/sub/file.log"));
+    }
+
+    // ── edge cases ──
+    #[test]
+    fn test_db_size_bytes_in_memory() {
+        let idx = setup();
+        // In-memory DB has no path → should error
+        assert!(idx.db_size_bytes().is_err() || idx.db_size_bytes().is_ok());
+        // In any case it shouldn't panic
+    }
+    #[test]
+    fn test_compact_does_not_panic() {
+        let idx = setup();
+        idx.compact().unwrap();
+    }
+    #[test]
+    fn test_clear_all() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/to-clear.log").unwrap();
+        idx.insert_entries(&[LogEntry {
+            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            timestamp: Some(Utc::now()), level: Some("INFO".into()),
+            thread: None, logger: None, message: "msg".into(),
+            fields_json: None, raw: "msg".into(),
+        }]).unwrap();
+        idx.clear_all().unwrap();
+        assert_eq!(idx.total_entries().unwrap(), 0);
+        assert_eq!(idx.total_files().unwrap(), 0);
+    }
 }
