@@ -21,6 +21,7 @@ pub struct LogEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub id: i64,
+    pub file_id: i64,
     pub source: String,
     pub line_number: u64,
     pub byte_offset: u64,
@@ -48,6 +49,7 @@ pub struct SearchQuery {
     pub module: Option<String>,
     pub limit: u32,
     pub offset: u32,
+    pub exclude: Vec<String>,
 }
 
 /// Index statistics
