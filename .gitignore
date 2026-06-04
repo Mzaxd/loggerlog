@@ -19,4 +19,9 @@ Thumbs.db
 
 # Temp
 *.tmp
-*.log
+# Ignore *.log at repo root only (test fixtures are committed)
+/*.log
+
+# CodeGraph / MCP
+.codegraph/
+.mcp.json
