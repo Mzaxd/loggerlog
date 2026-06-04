@@ -70,6 +70,26 @@ enum Commands {
         #[arg(short = 'C', long)]
         context: Option<u32>,
 
+        /// Maximum output characters (truncation budget)
+        #[arg(long)]
+        max_chars: Option<usize>,
+
+        /// Exclude results containing these keywords (can repeat)
+        #[arg(long)]
+        exclude: Vec<String>,
+
+        /// Deduplicate results by level + message prefix
+        #[arg(long)]
+        unique: bool,
+
+        /// Write output to file instead of stdout (terminal shows summary)
+        #[arg(long)]
+        output_file: Option<String>,
+
+        /// Show aggregated summary instead of individual results
+        #[arg(short = 'S', long)]
+        summary: bool,
+
         /// Skip automatic incremental sync before search
         #[arg(long)]
         no_sync: bool,
@@ -117,6 +137,7 @@ pub enum OutputFormat {
     Json,
     Table,
     Raw,
+    Compact,
 }
 
 impl std::fmt::Display for OutputFormat {
@@ -125,6 +146,7 @@ impl std::fmt::Display for OutputFormat {
             OutputFormat::Json => write!(f, "json"),
             OutputFormat::Table => write!(f, "table"),
             OutputFormat::Raw => write!(f, "raw"),
+            OutputFormat::Compact => write!(f, "compact"),
         }
     }
 }
@@ -205,13 +227,18 @@ pub fn run() {
             limit,
             output,
             context,
+            max_chars,
+            exclude,
+            unique,
+            output_file,
+            summary,
             no_sync,
         }) => {
             let output = global_output.unwrap_or(output);
             if let Err(e) = commands::search::run(&query, &level, source.as_deref(),
                 project.as_deref(), module.as_deref(),
                 after.as_deref(), before.as_deref(), thread.as_deref(),
-                regex, limit, context, &output, config_path.as_deref(), no_sync) {
+                regex, limit, context, max_chars, exclude, unique, output_file, summary, &output, config_path.as_deref(), no_sync) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
