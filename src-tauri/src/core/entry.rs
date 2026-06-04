@@ -44,6 +44,8 @@ pub struct SearchQuery {
     pub before: Option<DateTime<Utc>>,
     pub thread: Option<String>,
     pub logger: Option<String>,
+    pub project: Option<String>,
+    pub module: Option<String>,
     pub limit: u32,
     pub offset: u32,
 }

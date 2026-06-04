@@ -42,6 +42,25 @@ impl<'a> SearchEngine<'a> {
             params.push(Box::new(format!("%{}%", source)));
         }
 
+        // Project filter
+        if let Some(ref project) = query.project {
+            conditions.push(
+                "f.project_id IN (SELECT id FROM projects WHERE name = ?)".to_string()
+            );
+            params.push(Box::new(project.clone()));
+        }
+
+        // Module filter — match subdirectory name within project path
+        // Normalize path separators to '/' for cross-platform matching
+        if let Some(ref module) = query.module {
+            conditions.push(
+                "EXISTS (SELECT 1 FROM projects p WHERE f.project_id = p.id \
+                 AND REPLACE(substr(f.path, length(p.path) + 2), '\\', '/') \
+                 LIKE ? || '/%')".to_string()
+            );
+            params.push(Box::new(module.clone()));
+        }
+
         // Time range filters
         if let Some(ref after) = query.after {
             conditions.push("timestamp >= ?".to_string());
@@ -68,7 +87,7 @@ impl<'a> SearchEngine<'a> {
 
         // Count total matching results
         let count_sql = format!(
-            "SELECT COUNT(*) FROM log_entries e WHERE {}", where_clause
+            "SELECT COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {}", where_clause
         );
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
         let total_count: u64 = self.conn.query_row(&count_sql, param_refs.as_slice(), |row| row.get(0))?;
@@ -90,6 +109,8 @@ impl<'a> SearchEngine<'a> {
             for level in &query.levels { select_params.push(Box::new(level.clone())); }
         }
         if let Some(ref source) = query.source { select_params.push(Box::new(format!("%{}%", source))); }
+        if let Some(ref project) = query.project { select_params.push(Box::new(project.clone())); }
+        if let Some(ref module) = query.module { select_params.push(Box::new(module.clone())); }
         if let Some(ref after) = query.after { select_params.push(Box::new(after.to_rfc3339())); }
         if let Some(ref before) = query.before { select_params.push(Box::new(before.to_rfc3339())); }
         if let Some(ref thread) = query.thread { select_params.push(Box::new(format!("%{}%", thread))); }
@@ -151,6 +172,22 @@ impl<'a> SearchEngine<'a> {
             param_values.push(Box::new(format!("%{}%", source)));
         }
 
+        if let Some(ref project) = query.project {
+            conditions.push(
+                "f.project_id IN (SELECT id FROM projects WHERE name = ?)".to_string()
+            );
+            param_values.push(Box::new(project.clone()));
+        }
+
+        if let Some(ref module) = query.module {
+            conditions.push(
+                "EXISTS (SELECT 1 FROM projects p WHERE f.project_id = p.id \
+                 AND REPLACE(substr(f.path, length(p.path) + 2), '\\', '/') \
+                 LIKE ? || '/%')".to_string()
+            );
+            param_values.push(Box::new(module.clone()));
+        }
+
         if let Some(ref after) = query.after {
             conditions.push("timestamp >= ?".to_string());
             param_values.push(Box::new(after.to_rfc3339()));
@@ -179,6 +216,8 @@ impl<'a> SearchEngine<'a> {
             for level in &query.levels { select_params.push(Box::new(level.clone())); }
         }
         if let Some(ref source) = query.source { select_params.push(Box::new(format!("%{}%", source))); }
+        if let Some(ref project) = query.project { select_params.push(Box::new(project.clone())); }
+        if let Some(ref module) = query.module { select_params.push(Box::new(module.clone())); }
         if let Some(ref after) = query.after { select_params.push(Box::new(after.to_rfc3339())); }
         if let Some(ref before) = query.before { select_params.push(Box::new(before.to_rfc3339())); }
         select_params.push(Box::new(scan_limit as i64));
@@ -302,6 +341,16 @@ pub fn parse_query_string(query_str: &str, limit: u32) -> SearchQuery {
             let (val, remaining) = take_value(rest);
             sq.source = if val.is_empty() { None } else { Some(val) };
             rest = remaining.trim_start();
+        } else if rest.starts_with("project=") {
+            rest = &rest[8..];
+            let (val, remaining) = take_value(rest);
+            sq.project = if val.is_empty() { None } else { Some(val) };
+            rest = remaining.trim_start();
+        } else if rest.starts_with("module=") {
+            rest = &rest[7..];
+            let (val, remaining) = take_value(rest);
+            sq.module = if val.is_empty() { None } else { Some(val) };
+            rest = remaining.trim_start();
         } else if rest.starts_with("thread=") {
             rest = &rest[7..];
             let (val, remaining) = take_value(rest);
@@ -417,5 +466,21 @@ mod tests {
         let sq = parse_query_string("regex:Exception\\s+in\\s+thread", 100);
         assert!(sq.regex_query.is_some());
         assert!(sq.fts_query.is_none());
+    }
+
+    #[test]
+    fn test_parse_project_module_query() {
+        let sq = parse_query_string("project=aico module=aico-cloud-auth level=ERROR", 100);
+        assert_eq!(sq.project.as_deref(), Some("aico"));
+        assert_eq!(sq.module.as_deref(), Some("aico-cloud-auth"));
+        assert_eq!(sq.levels, vec!["ERROR"]);
+    }
+
+    #[test]
+    fn test_parse_project_only_query() {
+        let sq = parse_query_string("project=aico level=ERROR", 100);
+        assert_eq!(sq.project.as_deref(), Some("aico"));
+        assert!(sq.module.is_none());
+        assert_eq!(sq.levels, vec!["ERROR"]);
     }
 }

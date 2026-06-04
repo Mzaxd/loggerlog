@@ -1,23 +1,23 @@
 # LoggerLog
 
-轻量级日志搜索工具 — 桌面 GUI + CLI 双模式
+轻量级 CLI 日志搜索工具
 
 ## 特性
 
 - 🔍 **全文搜索** — SQLite FTS5 索引，毫秒级搜索
 - 📊 **多格式支持** — 自动检测 log4j/logback、JSON 结构化日志、纯文本
-- 🖥️ **桌面 GUI** — 三栏布局，深色主题，日志源树 + 搜索结果 + 详情面板
 - ⌨️ **CLI 工具** — 支持 table/json/raw 输出，方便 AI agent 集成
 - 📁 **实时 tail** — 跟随日志文件实时输出
-- 🌏 **跨平台** — macOS + Windows（Tauri v2）
-- 🔧 **增量索引** — 只索引新增内容，高效处理大文件
 - 🌍 **编码检测** — 自动检测 UTF-8/GBK 编码
+- 🔧 **增量索引** — 只索引新增内容，高效处理大文件
+- 📦 **多项目管理** — 注册多个项目，自动识别子目录为模块
 
 ## 快速开始
 
-### CLI 使用
-
 ```bash
+# 构建索引
+cargo build --release
+
 # 添加日志目录
 loggerlog config add-dir /path/to/logs
 
@@ -35,53 +35,50 @@ loggerlog search "error" -o json
 # 实时 tail
 loggerlog tail /var/log/app.log --filter "ERROR"
 
+# 多项目支持
+loggerlog project add myproject "/path/to/project/logs"
+loggerlog project list
+loggerlog search --project myproject --module auth "error"
+loggerlog search "project=myproject module=auth level=ERROR"
+
 # 索引管理
 loggerlog index stats
 loggerlog index rebuild
 loggerlog index compact
 ```
 
-### GUI 使用
+## 搜索语法
 
-```bash
-loggerlog gui
-# 或直接运行（无参数默认 GUI）
-loggerlog
+```
+level=ERROR level=WARN          按日志级别过滤（逗号分隔）
+after=1h-ago before=30m-ago     时间范围
+source=app.log                  按文件名过滤
+project=myproject               按项目名过滤
+module=auth-service             按模块名（子目录）过滤
+regex:Exception\s+in\s+thread  正则搜索（前缀 regex:）
+error timeout                   FTS 全文搜索
 ```
 
 ## 开发
 
 ```bash
-# CLI 模式编译
-cargo build --features cli
-
-# GUI + CLI 编译
-cargo build --features "cli,gui"
-
-# 前端开发
-cd ui && npm install && npm run dev
-
-# Tauri 开发模式
-cd ui && npm run dev
-cargo run --features "cli,gui" -- gui
+cargo build          # 构建
+cargo test           # 运行测试
+cargo run -- --help  # 查看帮助
 ```
 
 ## 架构
 
-- **Tauri v2** — Rust 后端 + React 前端
+- **Rust** — 核心引擎 + CLI（clap derive）
 - **SQLite FTS5** — 全文搜索索引
-- **同一二进制** — CLI/GUI 双模式自动切换
+- **两层模型** — core（纯库）→ cli（上层调用者）
 
 ## 技术栈
 
 | 层 | 技术 |
 |----|------|
-| 桌面框架 | Tauri v2 |
-| 后端语言 | Rust |
+| 语言 | Rust |
 | 数据库 | SQLite (FTS5) |
-| 前端 | React + TypeScript |
-| 样式 | Tailwind CSS 4 |
-| 状态管理 | Zustand |
 | CLI 解析 | clap 4 |
 
 ## License

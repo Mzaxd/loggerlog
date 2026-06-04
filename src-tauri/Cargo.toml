@@ -2,24 +2,13 @@
 name = "loggerlog"
 version = "0.1.0"
 edition = "2021"
-description = "Lightweight log search tool with GUI and CLI"
-
-[features]
-default = ["cli"]
-cli = ["dep:clap", "dep:comfy-table", "dep:colored"]
-gui = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-fs", "dep:tauri-plugin-shell"]
+description = "Lightweight CLI log search tool"
 
 [dependencies]
 # CLI
-clap = { version = "4", features = ["derive", "string"], optional = true }
-comfy-table = { version = "7", optional = true }
-colored = { version = "2", optional = true }
-
-# GUI (Tauri v2)
-tauri = { version = "2", optional = true }
-tauri-plugin-dialog = { version = "2", optional = true }
-tauri-plugin-fs = { version = "2", optional = true }
-tauri-plugin-shell = { version = "2", optional = true }
+clap = { version = "4", features = ["derive", "string"] }
+comfy-table = "7"
+colored = "2"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -65,9 +54,6 @@ dirs = "6"
 
 [dev-dependencies]
 rand = "0.8"
-
-[build-dependencies]
-tauri-build = { version = "2" }
 
 [profile.release]
 opt-level = 3

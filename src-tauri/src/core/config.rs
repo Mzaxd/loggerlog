@@ -8,6 +8,8 @@ use std::path::PathBuf;
 pub struct Config {
     pub general: GeneralConfig,
     pub sources: SourcesConfig,
+    #[serde(default)]
+    pub projects: ProjectsConfig,
     pub search: SearchConfig,
 }
 
@@ -31,6 +33,30 @@ pub struct SourcesConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectorySource {
+    pub path: String,
+    #[serde(default = "default_true")]
+    pub recursive: bool,
+    #[serde(default = "default_formats")]
+    pub formats: Vec<String>,
+    #[serde(default = "default_auto")]
+    pub encoding: String,
+    #[serde(default)]
+    pub exclude_patterns: Vec<String>,
+}
+
+/// Project configuration
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ProjectsConfig {
+    #[serde(default)]
+    pub projects: Vec<Project>,
+}
+
+/// A named project with a root log directory
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Project {
+    /// Unique project name
+    pub name: String,
+    /// Root directory path for this project's logs
     pub path: String,
     #[serde(default = "default_true")]
     pub recursive: bool,
@@ -101,6 +127,9 @@ impl Default for Config {
             },
             sources: SourcesConfig {
                 directories: Vec::new(),
+            },
+            projects: ProjectsConfig {
+                projects: Vec::new(),
             },
             search: SearchConfig {
                 default_limit: default_limit(),
@@ -188,4 +217,33 @@ pub fn parse_size(size_str: &str) -> u64 {
         (s.as_str(), 1)
     };
     num_str.trim().parse::<u64>().unwrap_or(0) * multiplier
+}
+
+/// Add a project to the config
+pub fn add_project(config: &mut Config, name: &str, path: &str) -> bool {
+    // Check if name or path already exists
+    if config.projects.projects.iter().any(|p| p.name == name || p.path == path) {
+        return false;
+    }
+    config.projects.projects.push(Project {
+        name: name.to_string(),
+        path: path.to_string(),
+        recursive: true,
+        formats: vec!["auto".to_string()],
+        encoding: "auto".to_string(),
+        exclude_patterns: vec!["*.gz".to_string(), "*.zip".to_string(), "*.tmp".to_string()],
+    });
+    true
+}
+
+/// Remove a project from the config by name
+pub fn remove_project(config: &mut Config, name: &str) -> bool {
+    let len_before = config.projects.projects.len();
+    config.projects.projects.retain(|p| p.name != name);
+    config.projects.projects.len() != len_before
+}
+
+/// Get a project by name
+pub fn get_project_by_name<'a>(config: &'a Config, name: &str) -> Option<&'a Project> {
+    config.projects.projects.iter().find(|p| p.name == name)
 }
