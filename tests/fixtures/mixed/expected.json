@@ -1,0 +1,19 @@
+{
+  "format": "mixed",
+  "description": "Expected parse results for mixed-format test fixtures. Tests auto-detection behavior when multiple formats coexist.",
+  "fixtures": {
+    "01_log4j_and_plain.log": {
+      "format": "log4j",
+      "note": "Primarily log4j format with plain text banners mixed in. Auto-detect should still identify as log4j because >60% of lines match the log4j pattern.",
+      "total_lines": 24,
+      "log4j_entries_count": 10,
+      "plain_lines_count": 14
+    },
+    "02_json_and_text.log": {
+      "format": "json",
+      "note": "Mix of JSON structured logs and plain text banners/stack traces. Auto-detect should identify as JSON.",
+      "json_entries_count": 7,
+      "plain_lines_count": 12
+    }
+  }
+}

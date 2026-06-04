@@ -1,0 +1,32 @@
+# LoggerLog Test Fixture: Log4j Date/Time Format Variants
+# Tests all timestamp formats that the log4j parser should handle
+
+# Format: yyyy-MM-dd HH:mm:ss,SSS (log4j default, comma-separated ms)
+2024-03-01 08:00:00,100 INFO  [main] com.example.DateFormats - Comma-separated milliseconds (log4j default)
+
+# Format: yyyy-MM-dd HH:mm:ss.SSS (dot-separated ms, also common)
+2024-03-01 08:00:01.200 INFO  [main] com.example.DateFormats - Dot-separated milliseconds
+
+# Format: yyyy-MM-dd HH:mm:ss (no milliseconds)
+2024-03-01 08:00:02 INFO  [main] com.example.DateFormats - No milliseconds in timestamp
+
+# Format: yyyy/MM/dd HH:mm:ss,SSS (slash date separator, comma ms)
+2024/03/01 08:00:03,300 INFO  [main] com.example.DateFormats - Slash date separator with comma milliseconds
+
+# Format: yyyy/MM/dd HH:mm:ss.SSS (slash date separator, dot ms)
+2024/03/01 08:00:04.400 INFO  [main] com.example.DateFormats - Slash date separator with dot milliseconds
+
+# Format: yyyy/MM/dd HH:mm:ss (slash date, no ms)
+2024/03/01 08:00:05 INFO  [main] com.example.DateFormats - Slash date separator, no milliseconds
+
+# Format: ISO 8601 without timezone
+2024-03-01T08:00:06,600 INFO  [main] com.example.DateFormats - ISO 8601 without timezone (comma ms)
+2024-03-01T08:00:07.700 INFO  [main] com.example.DateFormats - ISO 8601 without timezone (dot ms)
+2024-03-01T08:00:08 INFO  [main] com.example.DateFormats - ISO 8601 without timezone (no ms)
+
+# Format: ISO 8601 with timezone (RFC 3339)
+2024-03-01T08:00:09+08:00 INFO  [main] com.example.DateFormats - ISO 8601 with timezone offset
+2024-03-01T08:00:10Z INFO  [main] com.example.DateFormats - ISO 8601 with Z timezone
+
+# Format: epoch milliseconds
+1711344000000 INFO  [main] com.example.DateFormats - Epoch milliseconds timestamp

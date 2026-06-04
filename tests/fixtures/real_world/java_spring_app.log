@@ -1,0 +1,44 @@
+# LoggerLog Test Fixture: Java Spring Boot Application Log
+# Realistic production log from a Java Spring Boot microservice
+# Format: Standard Logback (Spring Boot default)
+
+2024-09-15 08:00:00.123  INFO --- [           main] c.e.payment.PaymentApplication           : Starting PaymentApplication v3.2.1 on payment-svc-7d8f with PID 1
+2024-09-15 08:00:00.456  INFO --- [           main] c.e.payment.PaymentApplication           : The following 2 profiles are active: "production", "gcp"
+2024-09-15 08:00:02.789  INFO --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2024-09-15 08:00:03.012  INFO --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]        : Initializing Spring embedded WebApplicationContext
+2024-09-15 08:00:05.234  INFO --- [           main] c.e.p.config.DataSourceConfig            : Configuring HikariCP DataSource for jdbc:mysql://10.128.0.5:3306/payment_db
+2024-09-15 08:00:06.567  INFO --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2024-09-15 08:00:07.890  INFO --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2024-09-15 08:00:08.123  INFO --- [           main] c.e.p.config.RedisConfig                 : Connecting to Redis at 10.128.0.6:6379
+2024-09-15 08:00:08.456  INFO --- [           main] c.e.p.config.RedisConfig                 : Redis connection pool: 16 connections
+2024-09-15 08:00:10.789  INFO --- [           main] c.e.payment.PaymentApplication           : Started PaymentApplication in 10.67 seconds
+2024-09-15 08:01:00.100  INFO --- [nio-8080-exec-1] c.e.p.controller.HealthController        : Health check from load balancer (10.128.0.2)
+2024-09-15 08:01:30.200  INFO --- [nio-8080-exec-2] c.e.p.controller.PaymentController       : POST /api/v1/payments - Create payment request from user_id=42001
+2024-09-15 08:01:30.250 DEBUG --- [nio-8080-exec-2] c.e.p.service.FraudDetectionService       : Running fraud check for user_id=42001, amount=150.00 USD
+2024-09-15 08:01:30.800 DEBUG --- [nio-8080-exec-2] c.e.p.service.FraudDetectionService       : Fraud check passed: risk_score=0.12 (threshold=0.8)
+2024-09-15 08:01:30.900 DEBUG --- [nio-8080-exec-2] c.e.p.service.PaymentGatewayService      : Calling Stripe API: POST /v1/charges
+2024-09-15 08:01:31.500  INFO --- [nio-8080-exec-2] c.e.p.service.PaymentGatewayService      : Stripe response: charge_id=ch_3NqD8fLkdYu7zX, status=succeeded, latency=600ms
+2024-09-15 08:01:31.510 DEBUG --- [nio-8080-exec-2] c.e.p.repository.PaymentRepository       : INSERT INTO payments (user_id, amount, currency, stripe_charge_id, status) VALUES (42001, 150.00, 'USD', 'ch_3NqD8fLkdYu7zX', 'COMPLETED')
+2024-09-15 08:01:31.550  INFO --- [nio-8080-exec-2] c.e.p.controller.PaymentController       : Payment created: payment_id=pay_89012, charge_id=ch_3NqD8fLkdYu7zX
+2024-09-15 08:05:00.000  INFO --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Starting daily reconciliation for 2024-09-14
+2024-09-15 08:05:00.100 DEBUG --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Fetching transactions from Stripe API
+2024-09-15 08:05:01.200  INFO --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Retrieved 847 transactions from Stripe
+2024-09-15 08:05:01.300 DEBUG --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Matching against local database records
+2024-09-15 08:05:02.400  WARN --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Mismatch found: payment_id=pay_23456, local=COMPLETED, stripe=REFUNDED
+2024-09-15 08:05:02.500  WARN --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Mismatch found: payment_id=pay_56789, local=COMPLETED, stripe=PARTIALLY_REFUNDED
+2024-09-15 08:05:03.000  INFO --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Reconciliation complete: 845 matched, 2 mismatches
+2024-09-15 08:05:03.100  INFO --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Reconciliation report emailed to finance@example.com
+2024-09-15 08:10:00.000  INFO --- [   scheduling-1] c.e.p.monitor.HealthCheckJob             : HealthCheck: db=UP, redis=UP, stripe-api=UP (latency=234ms)
+2024-09-15 08:20:00.500 ERROR --- [nio-8080-exec-3] c.e.p.controller.PaymentController       : POST /api/v1/payments - Error processing payment
+com.stripe.exception.CardException: Your card was declined. (code: card_declined)
+	at com.stripe.net.ApiResource.request(ApiResource.java:173)
+	at com.stripe.model.Charge.create(Charge.java:254)
+	at c.e.p.service.PaymentGatewayService.charge(PaymentGatewayService.java:89)
+	at c.e.p.service.PaymentService.processPayment(PaymentService.java:56)
+	at c.e.p.controller.PaymentController.createPayment(PaymentController.java:42)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+2024-09-15 08:20:00.550  WARN --- [nio-8080-exec-3] c.e.p.controller.PaymentController       : Returning 402 Payment Required to client
+2024-09-15 08:25:00.000  INFO --- [kafka-consumer-0] c.e.p.messaging.OrderEventListener       : Received event: OrderCancelled {orderId=ord_456, userId=42001, reason=OUT_OF_STOCK}
+2024-09-15 08:25:00.100  INFO --- [kafka-consumer-0] c.e.p.service.RefundService              : Processing refund for order_id=ord_456, amount=75.00 USD
+2024-09-15 08:25:00.600  INFO --- [kafka-consumer-0] c.e.p.service.RefundService              : Refund processed: refund_id=ref_789, order_id=ord_456

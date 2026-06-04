@@ -1,0 +1,35 @@
+# LoggerLog Test Fixture: Mixed Log4j and Plain Text
+# Real log files often contain mixed content - log entries + plain text lines + stack traces
+# The auto-detect should still correctly identify the primary format
+
+2024-07-15 10:00:00,123 INFO  [main] com.example.App - === Application Started ===
+
+===========================================================
+  MyApp v2.3.1 - Production Environment
+  JVM: OpenJDK 17.0.9, Heap: 2048MB
+  Args: --spring.profiles.active=production
+===========================================================
+
+2024-07-15 10:00:01,234 DEBUG [main] com.example.App - OS: Linux 5.15.0, Arch: amd64, CPUs: 8
+2024-07-15 10:00:02,345 INFO  [main] com.example.App - PID: 12345, Written to /var/run/myapp.pid
+2024-07-15 10:00:03,456 WARN  [main] com.example.App - Environment variable DEPLOY_KEY not set, using default
+
+--- Initialization Complete ---
+
+2024-07-15 10:00:05,678 INFO  [http-nio-8080-exec-1] com.example.api.RequestLogger - --> GET /api/status from 10.0.1.5
+2024-07-15 10:00:05,679 INFO  [http-nio-8080-exec-1] com.example.api.RequestLogger - <-- 200 OK (1ms)
+2024-07-15 10:00:10,890 ERROR [http-nio-8080-exec-2] com.example.service.DataService - Query failed: timeout after 30s
+java.sql.SQLTimeoutException: Statement cancelled due to timeout
+	at com.mysql.cj.jdbc.StatementImpl.executeQuery(StatementImpl.java:1200)
+	at com.example.service.DataService.executeQuery(DataService.java:88)
+
+--- End of error ---
+
+2024-07-15 10:01:00,000 INFO  [scheduling-1] com.example.jobs.HourlyReport - Hourly report generated: 1423 records
+2024-07-15 10:02:00,000 INFO  [scheduling-1] com.example.jobs.HourlyReport - Report emailed to admin@example.com
+
+===========================================================
+Application uptime: 2 minutes
+Active sessions: 47
+Memory: 342MB / 2048MB (16%)
+===========================================================

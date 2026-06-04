@@ -1,0 +1,39 @@
+# LoggerLog Test Fixture: Log4j Edge Cases
+# Tests boundary conditions, unusual but valid log entries
+
+# Empty message after dash
+2024-06-01 10:00:00,000 INFO  [main] com.example.Edge -
+
+# Message containing only a dash
+2024-06-01 10:00:01,111 DEBUG [main] com.example.Edge - ---
+
+# Very long logger name
+2024-06-01 10:00:02,222 INFO  [main] com.example.module.submodule.service.impl.database.mysql.connection.ConnectionPoolManager - Very deeply nested logger name
+
+# Message with newline-like content (literal \n)
+2024-06-01 10:00:03,333 WARN  [main] com.example.Edge - First part - second part - third part
+
+# Thread name with spaces (in brackets)
+2024-06-01 10:00:04,444 INFO  [Thread-10 (Daemon)] com.example.Edge - Thread with spaces and parentheses in name
+
+# Message that looks like a log line (log injection)
+2024-06-01 10:00:05,555 WARN  [main] com.example.Edge - 2024-06-01 10:00:00,000 INFO [attacker] com.example.Fake - This is NOT a real log entry
+
+# Very long single-line message (200+ chars)
+2024-06-01 10:00:06,666 ERROR [main] com.example.Edge - This is an extremely long error message that contains a lot of diagnostic information including request body contents, stack trace summaries, environment variables, and other debugging details that could potentially span hundreds of characters in a single log line
+
+# Message with control characters
+2024-06-01 10:00:07,777 INFO  [main] com.example.Edge - Tab	separated	values	in	message
+
+# Logger name is just a single character
+2024-06-01 10:00:08,888 INFO  [main] a - Single character logger name
+
+# No thread (brackets empty or missing)
+2024-06-01 10:00:09,999 INFO  [] com.example.Edge - Empty thread brackets
+2024-06-01 10:00:10,000 INFO  com.example.Edge - No thread brackets at all
+
+# Message with only whitespace
+2024-06-01 10:00:11,111 INFO  [main] com.example.Edge -
+
+# Multiple consecutive dashes in message
+2024-06-01 10:00:12,222 INFO  [main] com.example.Edge - Step 1 -- Step 2 -- Step 3 -- Complete

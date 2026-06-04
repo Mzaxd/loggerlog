@@ -1,0 +1,38 @@
+{
+  "format": "logback",
+  "description": "Expected parse results for logback format test fixtures",
+  "fixtures": {
+    "01_basic.log": {
+      "format": "logback",
+      "total_lines": 11,
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.boot.Application", "message": "Starting Application on hostname with PID 1234"},
+        {"line_number": 4, "level": "INFO", "thread": "main", "logger": "com.example.boot.Application", "message": "No active profile set, falling back to 1 default profile: \"default\""},
+        {"line_number": 5, "level": "DEBUG", "thread": "main", "logger": "com.example.boot.config.WebConfig", "message": "Configuring CORS with allowedOrigins=[http://localhost:3000, https://app.example.com]"},
+        {"line_number": 6, "level": "WARN", "thread": "main", "logger": "com.example.boot.config.SecurityConfig", "message": "CSRF protection is disabled for API endpoints - ensure this is intentional"},
+        {"line_number": 7, "level": "INFO", "thread": "main", "logger": "o.s.b.w.embedded.tomcat.TomcatWebServer", "message": "Tomcat initialized with port(s): 8080 (http)"},
+        {"line_number": 8, "level": "INFO", "thread": "main", "logger": "o.apache.catalina.core.StandardService", "message": "Starting service [Tomcat]"},
+        {"line_number": 9, "level": "INFO", "thread": "main", "logger": "com.example.boot.Application", "message": "Started Application in 6.666 seconds (JVM running for 7.890)"},
+        {"line_number": 10, "level": "INFO", "thread": "http-nio-8080-exec-1", "logger": "c.e.b.controller.AuthController", "message": "User login request: username=admin, ip=10.0.0.1"},
+        {"line_number": 11, "level": "DEBUG", "thread": "http-nio-8080-exec-1", "logger": "c.e.b.service.AuthService", "message": "Authenticating user 'admin' against LDAP directory"},
+        {"line_number": 12, "level": "INFO", "thread": "http-nio-8080-exec-1", "logger": "c.e.b.service.AuthService", "message": "User 'admin' authenticated successfully in 111ms"},
+        {"line_number": 13, "level": "ERROR", "thread": "http-nio-8080-exec-2", "logger": "c.e.b.controller.DataController", "message": "API error: /api/v2/data/export - export job failed with status 500"}
+      ]
+    },
+    "02_variants.log": {
+      "format": "logback",
+      "total_lines": 9,
+      "entries": [
+        {"line_number": 4, "level": "INFO", "thread": "scheduling-1", "logger": "c.e.tasks.DailyReportJob", "message": "Daily report generation started at 10:00 AM"},
+        {"line_number": 5, "level": "DEBUG", "thread": "scheduling-1", "logger": "c.e.tasks.DailyReportJob", "message": "Querying database for transactions between 2024-08-31 and 2024-09-01"},
+        {"line_number": 6, "level": "WARN", "thread": "scheduling-1", "logger": "c.e.tasks.DailyReportJob", "message": "Report generation took 5012ms, exceeding 3000ms SLA"},
+        {"line_number": 9, "level": "INFO", "thread": "reactor-http-epoll-3", "logger": "c.e.gateway.RouteLogger", "message": "Inbound request: GET /api/products, headers={Authorization=***, X-Trace-Id=abc123}"},
+        {"line_number": 10, "level": "TRACE", "thread": "reactor-http-epoll-3", "logger": "c.e.gateway.RouteLogger", "message": "Route matched: /api/products/** -> product-service:8080"},
+        {"line_number": 11, "level": "INFO", "thread": "reactor-http-epoll-3", "logger": "c.e.gateway.RouteLogger", "message": "Request forwarded to product-service:8080 - response time: 102ms"},
+        {"line_number": 14, "level": "FATAL", "thread": "main", "logger": "c.e.Application", "message": "Unrecoverable startup error: required environment variable DATABASE_URL is not set"},
+        {"line_number": 17, "level": "WARN", "thread": "pool-2-thread-1", "logger": "c.e.service.CacheService", "message": "Redis connection pool running low: 2/20 available connections"},
+        {"line_number": 20, "level": "INFO", "thread": "main", "logger": "c.e.monitor.HealthCheck", "message": "Health check endpoint responded: all systems operational"}
+      ]
+    }
+  }
+}

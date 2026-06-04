@@ -1,0 +1,22 @@
+# LoggerLog Test Fixture: Custom Application Log Formats
+# Various custom/proprietary log formats from different ecosystems
+
+# Python logging default format
+2024-01-15 10:00:00,000 - root - INFO - Starting application
+2024-01-15 10:00:01,100 - myapp.module - DEBUG - Processing request #42
+2024-01-15 10:00:02,200 - myapp.module - WARNING - Deprecated config key found: 'old_timeout', use 'request_timeout'
+2024-01-15 10:00:03,300 - myapp.module - ERROR - Division by zero in calculation: total / count (count=0)
+2024-01-15 10:00:04,400 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.example.com:443
+2024-01-15 10:00:05,500 - myapp.auth - INFO - User 'jdoe' authenticated with role 'admin'
+
+# Go standard library log format
+2024/01/15 10:00:00 main.go:42: Starting server on :8080
+2024/01/15 10:00:01 handler.go:156: GET /api/health 200 1ms
+2024/01/15 10:00:02 handler.go:200: POST /api/data 400: invalid JSON in request body
+2024/01/15 10:00:03 database.go:89: Query took 234ms: SELECT * FROM items WHERE status='active'
+
+# Node.js console.log/winston format
+2024-01-15T10:00:00.000Z [info]: User login: user_id=42
+2024-01-15T10:00:01.000Z [debug]: Cache HIT for key "config:features"
+2024-01-15T10:00:02.000Z [warn]: API rate limit warning: 90/100 requests used in current window
+2024-01-15T10:00:03.000Z [error]: Unhandled rejection: TypeError: Cannot read property 'name' of undefined

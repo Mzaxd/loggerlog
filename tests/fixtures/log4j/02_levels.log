@@ -1,0 +1,12 @@
+# LoggerLog Test Fixture: Log4j All Log Levels
+# Tests that all standard Java logging levels are recognized and normalized
+# TRACE, DEBUG, INFO, WARN, WARNING→WARN, ERROR, FATAL, SEVERE→ERROR
+
+2024-01-15 10:00:00,000 TRACE [trace-thread] com.example.Trace - Entering method calculateTax(100.50, 0.08)
+2024-01-15 10:00:01,111 DEBUG [debug-thread] com.example.Debug - Variable state: x=42, y=hello, flag=true
+2024-01-15 10:00:02,222 INFO  [info-thread] com.example.Info - Batch processing completed: 1500 records in 2.3 seconds
+2024-01-15 10:00:03,333 WARN  [warn-thread] com.example.Warn - Disk usage at 85% on /dev/sda1, threshold is 80%
+2024-01-15 10:00:04,444 WARNING [warn2-thread] com.example.Warn2 - Deprecated API called: getUser() is deprecated, use fetchUser() instead
+2024-01-15 10:00:05,555 ERROR [error-thread] com.example.Error - Database connection pool exhausted: 50/50 connections in use
+2024-01-15 10:00:06,666 FATAL [fatal-thread] com.example.Fatal - System shutting down: unrecoverable error in payment processing module
+2024-01-15 10:00:07,777 SEVERE [severe-thread] com.example.Severe - Critical security breach detected: unauthorized access to /admin endpoint from 192.168.1.100

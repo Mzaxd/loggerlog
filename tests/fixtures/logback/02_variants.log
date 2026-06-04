@@ -1,0 +1,21 @@
+# LoggerLog Test Fixture: Logback Variants
+# Tests various logback formatting patterns including custom converters
+
+# Standard Spring Boot pattern with different loggers
+2024-09-01 10:00:00.100  INFO --- [scheduling-1] c.e.tasks.DailyReportJob : Daily report generation started at 10:00 AM
+2024-09-01 10:00:01.200 DEBUG --- [scheduling-1] c.e.tasks.DailyReportJob : Querying database for transactions between 2024-08-31 and 2024-09-01
+2024-09-01 10:00:05.300  WARN --- [scheduling-1] c.e.tasks.DailyReportJob : Report generation took 5012ms, exceeding 3000ms SLA
+
+# Variant with different thread names
+2024-09-01 10:05:00.400  INFO --- [reactor-http-epoll-3] c.e.gateway.RouteLogger : Inbound request: GET /api/products, headers={Authorization=***, X-Trace-Id=abc123}
+2024-09-01 10:05:00.500 TRACE --- [reactor-http-epoll-3] c.e.gateway.RouteLogger : Route matched: /api/products/** -> product-service:8080
+2024-09-01 10:05:00.600  INFO --- [reactor-http-epoll-3] c.e.gateway.RouteLogger : Request forwarded to product-service:8080 - response time: 102ms
+
+# Variant with FATAL level (though rare in logback)
+2024-09-01 10:10:00.700 FATAL --- [main] c.e.Application : Unrecoverable startup error: required environment variable DATABASE_URL is not set
+
+# Variant with WARNING→WARN normalization
+2024-09-01 10:15:00.800 WARNING --- [pool-2-thread-1] c.e.service.CacheService : Redis connection pool running low: 2/20 available connections
+
+# Logback with ISO 8601 timestamp
+2024-09-01T10:20:00.900  INFO --- [main] c.e.monitor.HealthCheck : Health check endpoint responded: all systems operational

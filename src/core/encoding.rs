@@ -67,6 +67,36 @@ pub fn read_lines(file_path: &str, encoding_override: Option<&str>) -> Vec<Strin
     content.lines().map(|l| l.to_string()).collect()
 }
 
+/// Read a gzip-compressed file and return decompressed UTF-8 content.
+/// Returns the entire decompressed content — compressed files cannot be
+/// incrementally indexed.
+pub fn read_gz_to_utf8(file_path: &str) -> anyhow::Result<String> {
+    use std::io::Read;
+
+    let file = std::fs::File::open(file_path)
+        .map_err(|e| anyhow::anyhow!("Failed to open gzip file {}: {}", file_path, e))?;
+
+    let mut decoder = flate2::read::GzDecoder::new(file);
+    let mut bytes = Vec::new();
+    decoder
+        .read_to_end(&mut bytes)
+        .map_err(|e| anyhow::anyhow!("Failed to decompress {}: {}", file_path, e))?;
+
+    // Detect encoding on the decompressed bytes
+    let encoding = {
+        let mut detector = chardetng::EncodingDetector::new();
+        let sample = &bytes[..bytes.len().min(4096)];
+        detector.feed(sample, true);
+        detector.guess(None, true)
+    };
+
+    let (decoded, _used_decoder, had_errors) = encoding.decode(&bytes);
+    if had_errors {
+        eprintln!("Warning: encoding errors detected in {}", file_path);
+    }
+    Ok(decoded.into_owned())
+}
+
 /// Read file content starting from a byte offset (for incremental indexing).
 /// Seeks to `byte_offset` and reads only the remaining bytes.
 pub fn read_file_from_offset(file_path: &str, byte_offset: u64) -> anyhow::Result<String> {

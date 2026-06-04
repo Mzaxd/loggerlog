@@ -1,0 +1,7 @@
+{"time":"2024-02-01T08:00:00Z","severity":"INFO","msg":"Service health check passed","thread_name":"health-check","class":"com.example.HealthService"}
+{"@timestamp":"2024-02-01T08:00:05Z","level":"DEBUG","message":"Cache hit: key=user:42, TTL=240s","logger_name":"com.example.cache.CacheManager"}
+{"ts":"1706774410000","lvl":"WARN","msg":"Rate limit approaching: 95/100 requests per minute","thread":"rate-limiter"}
+{"timestamp":"2024-02-01T08:00:15+08:00","severity":"ERROR","message":"Payment gateway timeout after 30000ms","class":"com.example.payment.PaymentGateway","thread":"http-nio-8080-exec-7"}
+{"time":"1706774500","level":"INFO","msg":"Batch job completed: 5000 records in 12.3s","logger_name":"com.example.batch.BatchProcessor"}
+{"@timestamp":"2024-02-01T08:00:25.500Z","severity":"FATAL","msg":"Database connection pool exhausted","logger":"com.example.db.PoolManager","thread":"pool-monitor"}
+{"ts":"2024-02-01T08:00:30Z","lvl":"TRACE","msg":"Entering critical section: lock acquired in 2μs","class":"com.example.lock.DistributedLock"}

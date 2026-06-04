@@ -1,0 +1,39 @@
+# LoggerLog Test Fixture: Log4j Multiline Messages and Stack Traces
+# Tests handling of multi-line messages and Java exception stack traces
+# Lines without date+level prefix should be treated as continuation of previous entry
+
+2024-04-10 15:00:00,123 INFO  [main] com.example.App - Starting multi-line message test
+
+2024-04-10 15:00:01,234 ERROR [http-nio-8080-exec-1] com.example.controller.OrderController - Failed to process order #12345
+java.lang.NullPointerException: Cannot invoke "String.length()" because "customerName" is null
+	at com.example.service.OrderService.validateOrder(OrderService.java:156)
+	at com.example.service.OrderService.processOrder(OrderService.java:89)
+	at com.example.controller.OrderController.createOrder(OrderController.java:45)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:750)
+
+2024-04-10 15:00:02,345 WARN  [http-nio-8080-exec-2] com.example.service.PaymentService - Payment gateway timeout, retrying (attempt 2/3)
+
+2024-04-10 15:00:03,456 ERROR [kafka-consumer-0] com.example.messaging.EventHandler - Failed to deserialize event payload
+com.fasterxml.jackson.core.JsonParseException: Unexpected character ('<' (code 60)): expected a valid value
+ at [Source: (String)"<html><body>error</body></html>"; line: 1, column: 2]
+	at com.fasterxml.jackson.core.JsonParser._constructError(JsonParser.java:2391)
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportError(ParserMinimalBase.java:735)
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportUnexpectedChar(ParserMinimalBase.java:659)
+	at com.fasterxml.jackson.core.json.ReaderBasedJsonParser._handleOddValue(ReaderBasedJsonParser.java:2081)
+	at com.example.messaging.EventHandler.deserialize(EventHandler.java:78)
+	at com.example.messaging.EventHandler.handle(EventHandler.java:42)
+Caused by: java.lang.IllegalArgumentException: Invalid content type: text/html
+	at com.example.messaging.ContentValidator.validate(ContentValidator.java:33)
+	at com.example.messaging.EventHandler.deserialize(EventHandler.java:75)
+	... 5 more
+
+2024-04-10 15:00:04,567 INFO  [main] com.example.App - Application shutdown initiated
+
+2024-04-10 15:00:05,678 ERROR [main] com.example.App - Fatal error during shutdown
+java.lang.OutOfMemoryError: Java heap space
+	at com.example.cache.LRUCache.evict(LRUCache.java:120)
+	at com.example.cache.LRUCache.put(LRUCache.java:85)

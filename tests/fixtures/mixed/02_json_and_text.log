@@ -1,0 +1,33 @@
+# LoggerLog Test Fixture: Mixed JSON and Plain Text
+# Tests scenarios where JSON log lines are mixed with non-JSON content
+# (e.g., application startup banners, stack traces, operator notes)
+
+===========================================================
+         S E R V I C E   S T A R T U P
+         Node: worker-3, Pod: svc-7d8f9
+===========================================================
+
+{"timestamp":"2024-08-01T12:00:00.000Z","level":"INFO","message":"Service bootstrap initiated","version":"3.2.1","nodeEnv":"production"}
+{"timestamp":"2024-08-01T12:00:00.500Z","level":"DEBUG","message":"Loading config from /etc/service/config.yaml"}
+{"timestamp":"2024-08-01T12:00:01.000Z","level":"INFO","message":"Database connection established: postgres@10.0.0.5:5432/serviceDB"}
+
+--- Warm-up phase ---
+Cache warming: completed 5000 entries in 2.3s
+Connection pool: 32 connections ready
+
+{"timestamp":"2024-08-01T12:00:02.000Z","level":"INFO","message":"Cache warmup complete: 5000 entries"}
+{"timestamp":"2024-08-01T12:00:02.500Z","level":"INFO","message":"HTTP server listening on 0.0.0.0:3000"}
+
+===========================================================
+         READY - Accepting requests
+===========================================================
+
+{"timestamp":"2024-08-01T12:01:00.000Z","level":"INFO","message":"GET /health - 200 OK","duration":1,"clientIP":"10.0.1.5"}
+{"timestamp":"2024-08-01T12:01:05.000Z","level":"ERROR","message":"Unhandled exception in GET /api/data","error":"TypeError: Cannot read properties of undefined (reading 'id')"}
+
+Stack trace:
+    at Object.getData (/app/src/services/data.js:42:15)
+    at processRequest (/app/src/middleware/handler.js:89:22)
+    at IncomingMessage.handle (/app/node_modules/express/lib/response.js:170:12)
+
+{"timestamp":"2024-08-01T12:01:10.000Z","level":"WARN","message":"Slow request detected","path":"/api/reports/generate","duration":5432}

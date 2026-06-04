@@ -1,0 +1,9 @@
+# LoggerLog Test Fixture: Shift-JIS Encoded Japanese Log
+# This file is encoded in Shift-JIS (Japanese)
+# The chardetng encoding detector should correctly identify this encoding
+
+2025-03-20 10:00:00,123 INFO  [main] com.example.app - システムが起動しました
+2025-03-20 10:00:01,234 DEBUG [main] com.example.app - 設定ファイルを読み込み中: /etc/app/config.xml
+2025-03-20 10:00:02,345 WARN  [main] com.example.app - メモリ使用率が限界に近づいています: 85%
+2025-03-20 10:00:03,456 ERROR [main] com.example.app - データベース接続エラー: タイムアウト (30秒)
+2025-03-20 10:00:04,567 INFO  [main] com.example.app - アプリケーションを正常に終了します。お疲れ様でした！

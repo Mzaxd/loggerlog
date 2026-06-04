@@ -1,0 +1,50 @@
+{
+  "format": "plain",
+  "description": "Expected parse results for plain text format test fixtures. Plain parser always succeeds - it treats every line as a message.",
+  "fixtures": {
+    "01_structured.log": {
+      "format": "plain",
+      "note": "Plain parser should extract timestamp+level from lines matching its pattern",
+      "total_lines": 12,
+      "entries_with_structure": [
+        {"line_number": 4, "level": "INFO", "message": "User authentication service started"},
+        {"line_number": 5, "level": "DEBUG", "message": "Loading encryption keys from /secure/keys/"},
+        {"line_number": 6, "level": "WARN", "message": "TLS certificate expires in 30 days"},
+        {"line_number": 7, "level": "ERROR", "message": "Failed to bind to port 443: permission denied"},
+        {"line_number": 8, "level": "FATAL", "message": "Unable to start server - exiting with code 1"}
+      ],
+      "note_slash_format": "Lines with yyyy/MM/dd format may or may not match depending on regex support for slash separator"
+    },
+    "02_unstructured.log": {
+      "format": "plain",
+      "note": "All lines are treated as messages. No structured fields extracted. Parser always succeeds as fallback.",
+      "total_lines": 9,
+      "all_unstructured": true
+    },
+    "03_nginx.log": {
+      "format": "plain",
+      "note": "Nginx access logs. Plain parser treats as unstructured fallback. Each line is a message.",
+      "total_lines": 10
+    },
+    "04_apache.log": {
+      "format": "plain",
+      "note": "Apache HTTPD combined access log + error log. Plain parser handles as unstructured fallback.",
+      "total_lines": 10
+    },
+    "05_syslog.log": {
+      "format": "plain",
+      "note": "Syslog RFC 3164 and RFC 5424 formats. Plain parser handles as unstructured fallback.",
+      "total_lines": 9
+    },
+    "06_docker.log": {
+      "format": "plain",
+      "note": "Docker/container logs. Some lines contain their own JSON wrapper.",
+      "total_lines": 13
+    },
+    "07_custom_app.log": {
+      "format": "plain",
+      "note": "Custom application log formats (Python, Go, Node.js).",
+      "total_lines": 15
+    }
+  }
+}

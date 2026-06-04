@@ -1,0 +1,14 @@
+# LoggerLog Test Fixture: Log4j Special Characters & Unicode
+# Tests messages with special characters, JSON inside messages, unicode, emoji
+
+2024-05-01 09:00:00,123 INFO  [main] com.example.Special - Message with special characters: !@#$%^&*()_+-=[]{}|;':",./<>?
+2024-05-01 09:00:01,234 DEBUG [main] com.example.Special - JSON payload in message: {"userId":42,"action":"login","ip":"192.168.1.1"}
+2024-05-01 09:00:02,345 INFO  [main] com.example.Special - Message with escaped characters: \n \t \r \" \\
+2024-05-01 09:00:03,456 WARN  [main] com.example.Special - XML in message: <user><id>42</id><name>John</name></user>
+2024-05-01 09:00:04,567 INFO  [main] com.example.Special - SQL query executed: SELECT * FROM users WHERE name LIKE '%test%' AND status = 'active'
+2024-05-01 09:00:05,678 ERROR [main] com.example.Special - URL in message: https://api.example.com/v2/users?page=1&size=50#section
+2024-05-01 09:00:06,789 INFO  [main] com.example.Chinese - 用户登录成功: 用户名=张三, 角色=管理员, 部门=技术部
+2024-05-01 09:00:07,890 INFO  [main] com.example.Japanese - ユーザーがログインしました: 田中さん (システム管理者)
+2024-05-01 09:00:08,901 INFO  [main] com.example.Korean - 사용자 로그인 성공: 홍길동, 접속IP=10.0.0.1
+2024-05-01 09:00:09,012 INFO  [main] com.example.Emoji - User feedback received: 👍👍👍 Server health check: ✅ Response time: 🚀 12ms
+2024-05-01 09:00:10,123 DEBUG [main] com.example.Regex - Regex pattern in message: ^(\d{4}-\d{2}-\d{2}) (INFO|ERROR|WARN) (.*)$

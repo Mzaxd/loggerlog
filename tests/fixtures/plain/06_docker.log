@@ -1,0 +1,20 @@
+# LoggerLog Test Fixture: Docker / Container Runtime Logs
+# Tests container-style log formats (Docker, containerd, Kubernetes)
+
+# Docker JSON log format (docker-ce default)
+{"log":"2024-01-15T10:00:00.000Z INFO  Starting nginx: nginx version: nginx/1.24.0\n","stream":"stdout","time":"2024-01-15T10:00:00.000000001Z"}
+{"log":"2024-01-15T10:00:01.000Z WARN  Using default configuration: /etc/nginx/nginx.conf\n","stream":"stdout","time":"2024-01-15T10:00:01.000000002Z"}
+{"log":"2024-01-15T10:00:02.000Z ERROR connect() failed (111: Connection refused) while connecting to upstream\n","stream":"stderr","time":"2024-01-15T10:00:02.000000003Z"}
+
+# containerd / cri-o format (Kubernetes pod logs)
+2024-01-15T10:00:00.000000000Z stdout F Starting application v1.2.3
+2024-01-15T10:00:01.000000000Z stdout F INFO: Connected to database at db-service:5432
+2024-01-15T10:00:02.000000000Z stderr F ERROR: Health check failed: /healthz returned 503
+2024-01-15T10:00:03.000000000Z stdout F WARN: Memory usage at 85%, considering scale-up
+
+# Plain container log (no special prefix, just stdout)
+2024-01-15 10:00:00 INFO  my-app/1.0.0 Starting server on 0.0.0.0:3000
+2024-01-15 10:00:01 DEBUG my-app/1.0.0 Environment: production
+2024-01-15 10:00:02 INFO  my-app/1.0.0 Connected to PostgreSQL at 10.0.0.5:5432
+2024-01-15 10:00:03 INFO  my-app/1.0.0 Connected to Redis at 10.0.0.6:6379
+2024-01-15 10:00:04 INFO  my-app/1.0.0 Server ready - listening on 0.0.0.0:3000 (PID: 1)

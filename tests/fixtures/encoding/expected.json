@@ -1,0 +1,45 @@
+{
+  "format": "various",
+  "description": "Expected parse results for encoding test fixtures. These test encoding detection and decoding.",
+  "fixtures": {
+    "utf8_chinese.log": {
+      "encoding": "UTF-8",
+      "total_lines": 6,
+      "note": "Standard UTF-8 encoded file with Chinese characters. Should be detected as UTF-8 and parsed correctly.",
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "主线程", "logger": "com.example.中文日志", "message": "系统启动成功，版本号: v3.2.1"},
+        {"line_number": 4, "level": "DEBUG", "thread": "工作线程-1", "logger": "com.example.中文日志", "message": "配置文件已加载: /etc/app/config.properties (大小: 2048 字节)"},
+        {"line_number": 5, "level": "INFO", "thread": "主线程", "logger": "com.example.中文日志", "message": "数据库连接池初始化完成，连接数: 20"},
+        {"line_number": 6, "level": "WARN", "thread": "监控线程", "logger": "com.example.中文日志", "message": "内存使用率警告: 当前 78%，阈值 80%"},
+        {"line_number": 7, "level": "ERROR", "thread": "HTTP线程-3", "logger": "com.example.中文日志", "message": "请求处理失败: 用户ID=999 不存在于数据库中"},
+        {"line_number": 8, "level": "INFO", "thread": "主线程", "logger": "com.example.中文日志", "message": "应用程序已就绪，监听端口 8080"}
+      ]
+    },
+    "gb2312_chinese.log": {
+      "encoding": "GB2312 / GBK",
+      "total_lines": 7,
+      "note": "GB2312 encoded file. chardetng should detect as GB18030/GBK, then encoding_rs should decode to UTF-8 correctly.",
+      "expected_encoding_detection": ["gbk", "gb18030"],
+      "entries": [
+        {"line_number": 3, "level": "INFO", "message": "系统启动成功"},
+        {"line_number": 4, "level": "DEBUG", "message": "配置文件加载完成"},
+        {"line_number": 5, "level": "WARN", "message": "磁盘空间不足警告：剩余空间 5%"},
+        {"line_number": 6, "level": "ERROR", "message": "数据库连接失败：连接超时"},
+        {"line_number": 7, "level": "INFO", "message": "程序正常退出，再见！"}
+      ]
+    },
+    "shift_jis.log": {
+      "encoding": "Shift-JIS",
+      "total_lines": 7,
+      "note": "Shift-JIS encoded file. chardetng should detect as SHIFT_JIS, then encoding_rs should decode to UTF-8 correctly.",
+      "expected_encoding_detection": ["shift_jis", "shift-jis"],
+      "entries": [
+        {"line_number": 3, "level": "INFO", "message": "システムが起動しました"},
+        {"line_number": 4, "level": "DEBUG", "message": "設定ファイルを読み込み中: /etc/app/config.xml"},
+        {"line_number": 5, "level": "WARN", "message": "メモリ使用率が限界に近づいています: 85%"},
+        {"line_number": 6, "level": "ERROR", "message": "データベース接続エラー: タイムアウト (30秒)"},
+        {"line_number": 7, "level": "INFO", "message": "アプリケーションを正常に終了します。お疲れ様でした！"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{"timestamp":"2024-03-01T12:00:00.000Z","level":"INFO","message":"User login","thread":"http-1","logger":"com.example.Auth","userId":"usr_42","ip":"192.168.1.100","sessionId":"sess_abc123","userAgent":"Mozilla/5.0"}
+{"timestamp":"2024-03-01T12:00:01.100Z","level":"INFO","message":"Order created","thread":"http-2","logger":"com.example.Order","orderId":"ord_789","userId":"usr_42","amount":99.99,"currency":"USD","items":3}
+{"timestamp":"2024-03-01T12:00:02.200Z","level":"ERROR","message":"Payment failed","thread":"http-3","logger":"com.example.Payment","paymentId":"pay_456","orderId":"ord_789","errorCode":"INSUFFICIENT_FUNDS","gatewayResponse":"declined","durationMs":2340}
+{"timestamp":"2024-03-01T12:00:03.300Z","level":"WARN","message":"Slow database query detected","thread":"http-4","logger":"com.example.Monitor","query":"SELECT * FROM orders WHERE user_id=? AND status=?","durationMs":5432,"threshold":1000}
+{"timestamp":"2024-03-01T12:00:04.400Z","level":"DEBUG","message":"Cache operation","thread":"cache-1","logger":"com.example.Cache","operation":"PUT","key":"user:42:profile","size":2048,"ttlSeconds":300}

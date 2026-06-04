@@ -1,0 +1,127 @@
+{
+  "format": "log4j",
+  "description": "Expected parse results for log4j format test fixtures",
+  "fixtures": {
+    "01_basic.log": {
+      "format": "log4j",
+      "total_lines": 7,
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.App", "message": "Application started successfully"},
+        {"line_number": 4, "level": "DEBUG", "thread": "main", "logger": "com.example.App", "message": "Configuration loaded from /etc/app/config.properties"},
+        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.App", "message": "Listening on port 8080"},
+        {"line_number": 6, "level": "WARN", "thread": "worker-1", "logger": "com.example.service.UserService", "message": "User session timeout for user_id=42, last activity was 30 minutes ago"},
+        {"line_number": 7, "level": "ERROR", "thread": "http-nio-8080-exec-1", "logger": "com.example.controller.UserController", "message": "Failed to fetch user profile: user_id=999 not found in database"},
+        {"line_number": 8, "level": "FATAL", "thread": "main", "logger": "com.example.App", "message": "Out of memory: heap space exhausted after processing 10000 requests"},
+        {"line_number": 9, "level": "DEBUG", "thread": "pool-3-thread-7", "logger": "com.example.service.NotificationService", "message": "Sending push notification to device_token=abc123def456"}
+      ]
+    },
+    "02_levels.log": {
+      "format": "log4j",
+      "total_lines": 8,
+      "entries": [
+        {"line_number": 3, "level": "TRACE", "thread": "trace-thread", "logger": "com.example.Trace", "message": "Entering method calculateTax(100.50, 0.08)"},
+        {"line_number": 4, "level": "DEBUG", "thread": "debug-thread", "logger": "com.example.Debug", "message": "Variable state: x=42, y=hello, flag=true"},
+        {"line_number": 5, "level": "INFO", "thread": "info-thread", "logger": "com.example.Info", "message": "Batch processing completed: 1500 records in 2.3 seconds"},
+        {"line_number": 6, "level": "WARN", "thread": "warn-thread", "logger": "com.example.Warn", "message": "Disk usage at 85% on /dev/sda1, threshold is 80%"},
+        {"line_number": 7, "level": "WARN", "thread": "warn2-thread", "logger": "com.example.Warn2", "message": "Deprecated API called: getUser() is deprecated, use fetchUser() instead"},
+        {"line_number": 8, "level": "ERROR", "thread": "error-thread", "logger": "com.example.Error", "message": "Database connection pool exhausted: 50/50 connections in use"},
+        {"line_number": 9, "level": "FATAL", "thread": "fatal-thread", "logger": "com.example.Fatal", "message": "System shutting down: unrecoverable error in payment processing module"},
+        {"line_number": 10, "level": "ERROR", "thread": "severe-thread", "logger": "com.example.Severe", "message": "Critical security breach detected: unauthorized access to /admin endpoint from 192.168.1.100"}
+      ]
+    },
+    "03_threads_loggers.log": {
+      "format": "log4j",
+      "total_lines": 10,
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.App", "message": "Main thread startup message"},
+        {"line_number": 4, "level": "DEBUG", "thread": "worker-1", "logger": "c.m.App", "message": "Abbreviated logger name pattern"},
+        {"line_number": 5, "level": "INFO", "thread": "http-nio-8080-exec-1", "logger": "com.example.controller.UserController", "message": "Tomcat thread pool naming"},
+        {"line_number": 6, "level": "WARN", "thread": "pool-3-thread-7", "logger": "org.springframework.boot.SpringApplication", "message": "Spring thread pool naming"},
+        {"line_number": 7, "level": "ERROR", "thread": "scheduling-1", "logger": "com.example.scheduler.CronJob", "message": "Scheduled task thread naming"},
+        {"line_number": 8, "level": "INFO", "thread": "ForkJoinPool.commonPool-worker-3", "logger": "com.example.parallel.ParallelProcessor", "message": "ForkJoinPool thread naming"},
+        {"line_number": 9, "level": "DEBUG", "thread": "reactor-http-nio-1", "logger": "reactor.netty.http.server.HttpServer", "message": "Reactor Netty thread naming"},
+        {"line_number": 10, "level": "INFO", "thread": "kafka-consumer-0", "logger": "com.example.messaging.KafkaConsumer", "message": "Kafka consumer thread naming"},
+        {"line_number": 11, "level": "WARN", "thread": "vert.x-eventloop-thread-0", "logger": "com.example.vertx.MainVerticle", "message": "Vert.x event loop thread naming"},
+        {"line_number": 12, "level": "ERROR", "thread": "grpc-default-executor-2", "logger": "com.example.grpc.AuthService", "message": "gRPC executor thread naming"}
+      ]
+    },
+    "04_date_formats.log": {
+      "format": "log4j",
+      "total_lines": 13,
+      "entries": [
+        {"line_number": 5, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Comma-separated milliseconds (log4j default)"},
+        {"line_number": 8, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Dot-separated milliseconds"},
+        {"line_number": 11, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "No milliseconds in timestamp"},
+        {"line_number": 14, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator with comma milliseconds"},
+        {"line_number": 17, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator with dot milliseconds"},
+        {"line_number": 20, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator, no milliseconds"},
+        {"line_number": 23, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (comma ms)"},
+        {"line_number": 24, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (dot ms)"},
+        {"line_number": 25, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (no ms)"},
+        {"line_number": 28, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 with timezone offset"},
+        {"line_number": 29, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 with Z timezone"},
+        {"line_number": 32, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Epoch milliseconds timestamp"}
+      ]
+    },
+    "05_multiline_stacktrace.log": {
+      "format": "log4j",
+      "total_lines": 28,
+      "note": "Stack trace lines (no date+level prefix) should be continuation of previous entries. Only lines with log4j header are parseable LogEntry rows.",
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "main", "message": "Starting multi-line message test"},
+        {"line_number": 5, "level": "ERROR", "thread": "http-nio-8080-exec-1", "message": "Failed to process order #12345"},
+        {"line_number": 15, "level": "WARN", "thread": "http-nio-8080-exec-2", "message": "Payment gateway timeout, retrying (attempt 2/3)"},
+        {"line_number": 17, "level": "ERROR", "thread": "kafka-consumer-0", "message": "Failed to deserialize event payload"},
+        {"line_number": 28, "level": "INFO", "thread": "main", "message": "Application shutdown initiated"},
+        {"line_number": 30, "level": "ERROR", "thread": "main", "message": "Fatal error during shutdown"}
+      ]
+    },
+    "06_special_characters.log": {
+      "format": "log4j",
+      "total_lines": 11,
+      "entries": [
+        {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "Message with special characters: !@#$%^&*()_+-=[]{}|;':\",./<>?"},
+        {"line_number": 4, "level": "DEBUG", "thread": "main", "logger": "com.example.Special", "message": "JSON payload in message: {\"userId\":42,\"action\":\"login\",\"ip\":\"192.168.1.1\"}"},
+        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "Message with escaped characters: \\n \\t \\r \" \\\\"},
+        {"line_number": 6, "level": "WARN", "thread": "main", "logger": "com.example.Special", "message": "XML in message: <user><id>42</id><name>John</name></user>"},
+        {"line_number": 7, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "SQL query executed: SELECT * FROM users WHERE name LIKE '%test%' AND status = 'active'"},
+        {"line_number": 8, "level": "ERROR", "thread": "main", "logger": "com.example.Special", "message": "URL in message: https://api.example.com/v2/users?page=1&size=50#section"},
+        {"line_number": 9, "level": "INFO", "thread": "main", "logger": "com.example.Chinese", "message": "用户登录成功: 用户名=张三, 角色=管理员, 部门=技术部"},
+        {"line_number": 10, "level": "INFO", "thread": "main", "logger": "com.example.Japanese", "message": "ユーザーがログインしました: 田中さん (システム管理者)"},
+        {"line_number": 11, "level": "INFO", "thread": "main", "logger": "com.example.Korean", "message": "사용자 로그인 성공: 홍길동, 접속IP=10.0.0.1"},
+        {"line_number": 12, "level": "INFO", "thread": "main", "logger": "com.example.Emoji", "message": "User feedback received: 👍👍👍 Server health check: ✅ Response time: 🚀 12ms"},
+        {"line_number": 13, "level": "DEBUG", "thread": "main", "logger": "com.example.Regex", "message": "Regex pattern in message: ^(\\d{4}-\\d{2}-\\d{2}) (INFO|ERROR|WARN) (.*)$"}
+      ]
+    },
+    "07_edge_cases.log": {
+      "format": "log4j",
+      "total_lines": 15,
+      "entries": [
+        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.Edge", "message": ""},
+        {"line_number": 8, "level": "DEBUG", "thread": "main", "logger": "com.example.Edge", "message": "---"},
+        {"line_number": 11, "level": "INFO", "thread": "main", "logger": "com.example.module.submodule.service.impl.database.mysql.connection.ConnectionPoolManager", "message": "Very deeply nested logger name"},
+        {"line_number": 14, "level": "WARN", "thread": "main", "logger": "com.example.Edge", "message": "First part - second part - third part"},
+        {"line_number": 17, "level": "INFO", "thread": "Thread-10 (Daemon)", "logger": "com.example.Edge", "message": "Thread with spaces and parentheses in name"},
+        {"line_number": 20, "level": "WARN", "thread": "main", "logger": "com.example.Edge", "message": "2024-06-01 10:00:00,000 INFO [attacker] com.example.Fake - This is NOT a real log entry"},
+        {"line_number": 23, "level": "ERROR", "thread": "main", "logger": "com.example.Edge", "message": "This is an extremely long error message that contains a lot of diagnostic information including request body contents, stack trace summaries, environment variables, and other debugging details that could potentially span hundreds of characters in a single log line"},
+        {"line_number": 26, "level": "INFO", "thread": "main", "logger": "com.example.Edge", "message": "Tab\tseparated\tvalues\tin\tmessage"},
+        {"line_number": 29, "level": "INFO", "thread": "main", "logger": "a", "message": "Single character logger name"},
+        {"line_number": 32, "level": "INFO", "thread": "", "logger": "com.example.Edge", "message": "Empty thread brackets"},
+        {"line_number": 33, "level": "INFO", "logger": "com.example.Edge", "message": "No thread brackets at all"},
+        {"line_number": 36, "level": "INFO", "thread": "main", "logger": "com.example.Edge", "message": ""},
+        {"line_number": 39, "level": "INFO", "thread": "main", "logger": "com.example.Edge", "message": "Step 1 -- Step 2 -- Step 3 -- Complete"}
+      ]
+    },
+    "08_large_sample.log": {
+      "format": "log4j",
+      "note": "Large sample for auto-detect threshold testing. >50 lines to ensure the 60% threshold test works correctly.",
+      "total_lines_gte": 50,
+      "level_distribution": {
+        "INFO": "~35",
+        "DEBUG": "~15",
+        "WARN": "~8",
+        "ERROR": "~5"
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# LoggerLog Test Fixture: Syslog Format (RFC 3164 / RFC 5424)
+
+# RFC 3164 style (BSD syslog)
+Jan 15 10:00:00 hostname sshd[1234]: Accepted publickey for root from 192.168.1.100 port 22 ssh2
+Jan 15 10:00:05 hostname CRON[5678]: (root) CMD (cd / && run-parts --report /etc/cron.hourly)
+Jan 15 10:00:10 hostname kernel: [12345.678901] TCP: request_sock_TCP: Possible SYN flooding on port 80. Sending cookies.
+Jan 15 10:00:15 hostname systemd[1]: Started Session 42 of user admin.
+Jan 15 10:00:20 hostname sudo:   admin : TTY=pts/0 ; PWD=/home/admin ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx
+
+# RFC 5424 style (structured syslog)
+<34>1 2024-01-15T10:00:25.000Z myhost myapp 1234 ID47 [exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"] Application started
+<14>1 2024-01-15T10:00:26.000Z myhost myapp 1234 ID48 [exampleSDID@32473 iut="5" eventSource="Database" eventID="2001"] Database connection established
+<11>1 2024-01-15T10:00:27.000Z myhost myapp 1234 ID49 [exampleSDID@32473 iut="9" eventSource="Security" eventID="3001"] Failed login attempt: user=root from=10.0.0.99

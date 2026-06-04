@@ -1,0 +1,15 @@
+{"timestamp":"2024-11-01T04:00:00.000Z","level":"INFO","message":"API Gateway starting on port 3000","service":"api-gateway","version":"2.1.0","nodeEnv":"production","pid":1}
+{"timestamp":"2024-11-01T04:00:00.500Z","level":"INFO","message":"Connected to MongoDB at mongodb://10.0.0.5:27017/gateway","service":"api-gateway"}
+{"timestamp":"2024-11-01T04:00:01.000Z","level":"INFO","message":"Connected to Redis at 10.0.0.6:6379","service":"api-gateway"}
+{"timestamp":"2024-11-01T04:00:01.500Z","level":"INFO","message":"Server listening on 0.0.0.0:3000","service":"api-gateway"}
+{"timestamp":"2024-11-01T04:01:00.000Z","level":"INFO","message":"GET /health","service":"api-gateway","method":"GET","path":"/health","statusCode":200,"duration":1,"userAgent":"kube-probe/1.28","clientIP":"10.0.1.1"}
+{"timestamp":"2024-11-01T04:01:05.000Z","level":"INFO","message":"POST /api/v2/auth/login","service":"api-gateway","method":"POST","path":"/api/v2/auth/login","statusCode":200,"duration":156,"userId":"user_42001","clientIP":"192.168.1.100"}
+{"timestamp":"2024-11-01T04:01:05.200Z","level":"DEBUG","message":"JWT token issued for user_42001, expires in 3600s","service":"api-gateway","issuer":"auth.example.com","scope":["read","write"]}
+{"timestamp":"2024-11-01T04:01:10.000Z","level":"INFO","message":"GET /api/v2/products?category=electronics&page=1&limit=20","service":"api-gateway","method":"GET","path":"/api/v2/products","statusCode":200,"duration":45,"userId":"user_42001"}
+{"timestamp":"2024-11-01T04:01:15.000Z","level":"WARN","message":"Rate limit warning for user_42001: 85/100 requests in window","service":"api-gateway","rateLimit":{"limit":100,"remaining":15,"resetIn":45}}
+{"timestamp":"2024-11-01T04:01:20.000Z","level":"ERROR","message":"POST /api/v2/orders","service":"api-gateway","method":"POST","path":"/api/v2/orders","statusCode":503,"duration":5000,"error":"Upstream service timeout: order-service did not respond within 5000ms","userId":"user_42001","traceId":"trace_abc123def456"}
+{"timestamp":"2024-11-01T04:01:20.500Z","level":"ERROR","message":"Circuit breaker opened for order-service: failure threshold reached (5/5 failures)","service":"api-gateway","circuitName":"order-service","state":"OPEN","failures":5}
+{"timestamp":"2024-11-01T04:01:21.000Z","level":"INFO","message":"GET /api/v2/orders - returning cached fallback response","service":"api-gateway","method":"GET","path":"/api/v2/orders","statusCode":200,"duration":12,"cached":true}
+{"timestamp":"2024-11-01T04:02:00.000Z","level":"WARN","message":"Circuit breaker half-open for order-service: testing connectivity","service":"api-gateway","circuitName":"order-service","state":"HALF_OPEN"}
+{"timestamp":"2024-11-01T04:02:00.500Z","level":"INFO","message":"Circuit breaker closed for order-service: service recovered","service":"api-gateway","circuitName":"order-service","state":"CLOSED"}
+{"timestamp":"2024-11-01T04:05:00.000Z","level":"INFO","message":"Metrics report: 150 req/min, p50=12ms, p95=234ms, p99=1500ms, error_rate=1.2%","service":"api-gateway","window":"5m"}

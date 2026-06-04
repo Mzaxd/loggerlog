@@ -1,0 +1,15 @@
+# LoggerLog Test Fixture: Regex Search Test Data
+# This file contains patterns specifically designed to test regex fallback search
+# Including: complex patterns, lookaheads/behinds, character classes, alternation
+
+2025-01-10 08:00:00,000 INFO  [main] com.regex.Test - Request ID: req-abc-123-def processed successfully
+2025-01-10 08:00:01,100 INFO  [main] com.regex.Test - Request ID: req-xyz-456-ghi failed with error
+2025-01-10 08:00:02,200 ERROR [main] com.regex.Test - IP address 192.168.1.50 blocked after 5 failed attempts
+2025-01-10 08:00:03,300 WARN  [main] com.regex.Test - IP address 10.0.0.1 rate limited after 100 requests
+2025-01-10 08:00:04,400 INFO  [main] com.regex.Test - Email validation: alice@example.com = valid, bob@@test.com = invalid
+2025-01-10 08:00:05,500 DEBUG [main] com.regex.Test - UUID: 550e8400-e29b-41d4-a716-446655440000 generated for session
+2025-01-10 08:00:06,600 INFO  [main] com.regex.Test - Phone: +1-555-123-4567 (US), +86-138-0000-0000 (CN)
+2025-01-10 08:00:07,700 ERROR [main] com.regex.Test - Stack trace: Exception in thread "main" java.lang.RuntimeException
+2025-01-10 08:00:08,800 INFO  [main] com.regex.Test - HTTP_500_INTERNAL_SERVER_ERROR code encountered
+2025-01-10 08:00:09,900 WARN  [main] com.regex.Test - camelCase and snake_case and kebab-case and PascalCase identifiers
+2025-01-10 08:00:10,000 INFO  [main] com.regex.Test - Hex color codes: #FF5733 (orange), #33FF57 (green), #3357FF (blue)

@@ -1,0 +1,99 @@
+{
+  "format": "log4j",
+  "description": "Expected parse results for search-specific test fixtures. These are designed for testing FTS5 and regex search capabilities.",
+  "fixtures": {
+    "fts_test.log": {
+      "format": "log4j",
+      "total_lines": 20,
+      "search_tests": {
+        "single_word": {
+          "query": "database",
+          "expected_match_count": 4,
+          "expected_lines": [3, 4, 5, 6]
+        },
+        "phrase": {
+          "query": "connection pool",
+          "expected_match_count": 1,
+          "expected_lines": [3]
+        },
+        "prefix": {
+          "query": "connect*",
+          "expected_match_count": 5,
+          "expected_lines": [3, 4, 5, 6, 12]
+        },
+        "exact_level": {
+          "query": "level=ERROR",
+          "expected_match_count": 4,
+          "expected_lines": [4, 8, 13, 19]
+        },
+        "multi_word": {
+          "query": "Redis cache",
+          "expected_match_count": 2,
+          "expected_lines": [7, 8]
+        },
+        "unicode": {
+          "query": "中文",
+          "expected_match_count": 1,
+          "expected_lines": [16]
+        },
+        "numbers": {
+          "query": "42",
+          "expected_match_count": 2,
+          "expected_lines": [6, 15]
+        }
+      }
+    },
+    "regex_test.log": {
+      "format": "log4j",
+      "total_lines": 11,
+      "regex_tests": {
+        "ip_address": {
+          "pattern": "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+          "expected_match_count": 3,
+          "expected_lines": [5, 6, 7]
+        },
+        "uuid": {
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+          "expected_match_count": 1,
+          "expected_lines": [8]
+        },
+        "email": {
+          "pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+          "expected_match_count": 2,
+          "expected_lines": [7, 7]
+        },
+        "hex_color": {
+          "pattern": "#[0-9A-Fa-f]{6}",
+          "expected_match_count": 3,
+          "expected_lines": [13]
+        }
+      }
+    },
+    "filter_test.log": {
+      "format": "log4j",
+      "total_lines": 15,
+      "filter_tests": {
+        "level_filter_error": {
+          "condition": "level=ERROR",
+          "expected_match_count": 4,
+          "expected_lines": [7, 8, 10, 14]
+        },
+        "thread_filter": {
+          "condition": "thread=scheduler-1",
+          "expected_match_count": 1,
+          "expected_lines": [10]
+        },
+        "logger_filter": {
+          "condition": "logger=com.filters.business",
+          "expected_match_count": 3,
+          "expected_lines": [4, 5, 12]
+        },
+        "time_range": {
+          "condition": "after=2025-02-01 01:00:00 before=2025-02-01 03:00:00",
+          "expected_match_count": 3,
+          "expected_lines": [11, 13, 14]
+        }
+      }
+    }
+  }
+}

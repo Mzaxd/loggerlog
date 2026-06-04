@@ -27,7 +27,7 @@ pub fn run(
     println!("Tailing: {} (press Ctrl+C to stop)", file_path);
 
     let file = File::open(&file_path)?;
-    let _file_size = file.metadata()?.len();
+    let mut last_size = file.metadata()?.len();
     let mut reader = BufReader::new(file);
 
     reader.get_mut().seek(std::io::SeekFrom::End(0))?;
@@ -60,6 +60,19 @@ pub fn run(
 
             println!("{}", trimmed);
         } else {
+            // Check for log rotation: if the file size decreased (truncation
+            // or logrotate moved the file and a new one was created), reopen.
+            if let Ok(meta) = std::fs::metadata(&file_path) {
+                if meta.len() < last_size {
+                    eprintln!("--- Log rotated, following new file ---");
+                    // Close old reader and open new file from the start
+                    let new_file = File::open(&file_path)?;
+                    reader = BufReader::new(new_file);
+                    last_size = meta.len();
+                    continue;
+                }
+                last_size = meta.len();
+            }
             std::thread::sleep(std::time::Duration::from_millis(200));
         }
     }

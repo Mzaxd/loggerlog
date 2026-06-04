@@ -1,0 +1,24 @@
+# LoggerLog Test Fixture: FTS (Full-Text Search) Test Data
+# This file contains carefully crafted log entries to test FTS5 query capabilities
+# Including: exact matches, partial matches, phrase searches, and special FTS operators
+
+2024-12-15 10:00:00,000 INFO  [main] com.fts.Test - User authentication completed for alice@example.com
+2024-12-15 10:00:01,100 INFO  [main] com.fts.Test - Database connection pool initialized with 20 connections
+2024-12-15 10:00:02,200 ERROR [main] com.fts.Test - Connection timeout: failed to connect to database at db.example.com:5432
+2024-12-15 10:00:03,300 WARN  [main] com.fts.Test - Slow database query detected: SELECT * FROM large_table took 5000ms
+2024-12-15 10:00:04,400 INFO  [main] com.fts.Test - Cache miss for key user:42:profile, loading from database
+2024-12-15 10:00:05,500 DEBUG [main] com.fts.Test - Redis cache: SET user:42:profile (TTL=3600s) -> OK
+2024-12-15 10:00:06,600 ERROR [main] com.fts.Test - Redis connection failure: java.net.ConnectException: Connection refused
+2024-12-15 10:00:07,700 INFO  [main] com.fts.Test - HTTP request: POST /api/login, Content-Type: application/json, User-Agent: Mozilla/5.0
+2024-12-15 10:00:08,800 WARN  [main] com.fts.Test - Rate limiting applied: IP 192.168.1.50 exceeded 100 requests per minute
+2024-12-15 10:00:09,900 INFO  [main] com.fts.Test - Payment processed: transaction_id=txn_12345 amount=99.99 currency=USD status=completed
+2024-12-15 10:00:10,000 INFO  [main] com.fts.Test - Email notification sent to bob@example.com: template=welcome_email
+2024-12-15 10:00:11,100 ERROR [main] com.fts.Test - OutOfMemoryError: Java heap space exhausted after processing 50000 records
+2024-12-15 10:00:12,200 INFO  [main] com.fts.Test - Scheduled task execution: CleanupJob completed in 234ms, removed 15 expired sessions
+2024-12-15 10:00:13,300 DEBUG [main] com.fts.Test - JSON payload: {"event":"user.login","userId":42,"timestamp":"2024-12-15T10:00:13Z"}
+2024-12-15 10:00:14,400 INFO  [main] com.fts.Test - Message contains中文 and 日本語 and 한글 in the same line
+2024-12-15 10:00:15,500 WARN  [main] com.fts.Test - Disk space warning: /data partition at 92% (threshold: 90%), recommend cleanup
+2024-12-15 10:00:16,600 INFO  [main] com.fts.Test - File upload: document.pdf (2.5MB) uploaded to /storage/documents/2024/12/
+2024-12-15 10:00:17,700 ERROR [main] com.fts.Test - NullPointerException at com.example.service.UserService.getUser(UserService.java:156)
+2024-12-15 10:00:18,800 INFO  [main] com.fts.Test - null value in field should be searchable
+2024-12-15 10:00:19,900 INFO  [main] com.fts.Test - undefined behavior in the code path

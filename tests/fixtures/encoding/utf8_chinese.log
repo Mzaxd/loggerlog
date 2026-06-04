@@ -1,0 +1,10 @@
+# LoggerLog Test Fixture: UTF-8 Chinese Log
+# Tests UTF-8 encoding with Chinese/CJK characters in log messages
+# encoding_rs will verify this decodes correctly
+
+2025-03-01 10:00:00,123 INFO  [主线程] com.example.中文日志 - 系统启动成功，版本号: v3.2.1
+2025-03-01 10:00:01,234 DEBUG [工作线程-1] com.example.中文日志 - 配置文件已加载: /etc/app/config.properties (大小: 2048 字节)
+2025-03-01 10:00:02,345 INFO  [主线程] com.example.中文日志 - 数据库连接池初始化完成，连接数: 20
+2025-03-01 10:00:03,456 WARN  [监控线程] com.example.中文日志 - 内存使用率警告: 当前 78%，阈值 80%
+2025-03-01 10:00:04,567 ERROR [HTTP线程-3] com.example.中文日志 - 请求处理失败: 用户ID=999 不存在于数据库中
+2025-03-01 10:00:05,678 INFO  [主线程] com.example.中文日志 - 应用程序已就绪，监听端口 8080

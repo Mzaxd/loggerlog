@@ -1,0 +1,13 @@
+# LoggerLog Test Fixture: Nginx Access Log Format
+# Tests the common Nginx combined/access log format as plain text fallback
+
+192.168.1.1 - - [15/Jan/2024:10:23:45 +0000] "GET /api/users HTTP/1.1" 200 1234 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.0.0.5 - admin [15/Jan/2024:10:23:46 +0000] "POST /api/login HTTP/1.1" 200 567 "-" "curl/7.88.1"
+172.16.0.100 - - [15/Jan/2024:10:23:47 +0000] "GET /static/css/main.css HTTP/1.1" 304 0 "https://app.example.com/" "Mozilla/5.0"
+192.168.1.50 - - [15/Jan/2024:10:23:48 +0000] "GET /api/orders?status=pending HTTP/1.1" 200 2345 "-" "Apache-HttpClient/4.5.13"
+10.0.0.1 - - [15/Jan/2024:10:23:49 +0000] "POST /api/upload HTTP/1.1" 413 45 "-" "iOS/17.2 App/3.0.1"
+203.0.113.50 - - [15/Jan/2024:10:23:50 +0000] "GET /admin HTTP/1.1" 403 153 "-" "python-requests/2.31.0"
+127.0.0.1 - - [15/Jan/2024:10:23:51 +0000] "GET /health HTTP/1.1" 200 15 "-" "kube-probe/1.28"
+192.168.1.1 - - [15/Jan/2024:10:23:52 +0000] "DELETE /api/users/999 HTTP/1.1" 404 89 "-" "Mozilla/5.0"
+10.0.0.200 - - [15/Jan/2024:10:23:53 +0000] "GET /api/products/search?q=laptop&page=1 HTTP/1.1" 200 5678 "-" "Chrome/120.0"
+172.16.0.50 - - [15/Jan/2024:10:23:54 +0000] "PUT /api/users/42 HTTP/1.1" 200 345 "-" "PostmanRuntime/7.36.0"

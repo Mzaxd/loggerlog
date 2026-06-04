@@ -1,0 +1,53 @@
+{"timestamp":"2024-06-01T00:00:00.000Z","level":"INFO","message":"Service starting - large sample line 1","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.100Z","level":"DEBUG","message":"Configuring application context - line 2","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.200Z","level":"DEBUG","message":"Loading properties from application.yml - line 3","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.300Z","level":"INFO","message":"DataSource configured: jdbc:mysql://localhost:3306/mydb - line 4","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.400Z","level":"INFO","message":"Redis connection pool: 16 connections - line 5","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.500Z","level":"DEBUG","message":"Registering bean: userService - line 6","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.600Z","level":"DEBUG","message":"Registering bean: orderService - line 7","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.700Z","level":"DEBUG","message":"Registering bean: paymentService - line 8","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.800Z","level":"DEBUG","message":"Registering bean: notificationService - line 9","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:00.900Z","level":"INFO","message":"Bean registration complete: 47 beans - line 10","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:01.000Z","level":"INFO","message":"Starting embedded web server - line 11","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:01.100Z","level":"INFO","message":"Web server started on port 8080 - line 12","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:00:01.200Z","level":"INFO","message":"Application ready in 1.2s - line 13","thread":"main","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:00.000Z","level":"INFO","message":"Request GET /api/health - line 14","thread":"http-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:00.100Z","level":"INFO","message":"Response 200 OK - line 15","thread":"http-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:01.000Z","level":"INFO","message":"Request GET /api/users/1 - line 16","thread":"http-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:01.050Z","level":"DEBUG","message":"Cache miss for user:1 - line 17","thread":"http-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:01.100Z","level":"DEBUG","message":"Query: SELECT * FROM users WHERE id=1 - line 18","thread":"http-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:01.150Z","level":"INFO","message":"Response 200 OK - line 19","thread":"http-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:02.000Z","level":"WARN","message":"Slow query detected: 345ms - line 20","thread":"monitor-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:03.000Z","level":"ERROR","message":"Connection timeout to payment API - line 21","thread":"http-3","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:04.000Z","level":"WARN","message":"Retrying payment request (1/3) - line 22","thread":"http-3","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:01:05.000Z","level":"INFO","message":"Payment processed: txn_abc123 - line 23","thread":"http-3","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:02:00.000Z","level":"INFO","message":"Scheduled task: cleanup expired tokens - line 24","thread":"scheduler-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:02:00.500Z","level":"INFO","message":"Cleaned 12 expired tokens - line 25","thread":"scheduler-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:03:00.000Z","level":"INFO","message":"Scheduled task: generate daily report - line 26","thread":"scheduler-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:03:01.000Z","level":"INFO","message":"Report generated: 5000 rows in 1s - line 27","thread":"scheduler-2","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:04:00.000Z","level":"DEBUG","message":"Metrics snapshot: qps=45, latency_p99=120ms - line 28","thread":"metrics-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:05:00.000Z","level":"WARN","message":"Memory usage: 78% (798MB/1024MB) - line 29","thread":"monitor-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:06:00.000Z","level":"ERROR","message":"OutOfMemoryError in worker thread - line 30","thread":"worker-5","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:07:00.000Z","level":"INFO","message":"Health check: all systems operational - line 31","thread":"health-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:08:00.000Z","level":"INFO","message":"User login: user_42 - line 32","thread":"http-4","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:09:00.000Z","level":"INFO","message":"User logout: user_42 session=5min - line 33","thread":"http-5","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:10:00.000Z","level":"DEBUG","message":"Kafka consumer poll: 10 records - line 34","thread":"kafka-0","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:10:00.500Z","level":"INFO","message":"Kafka message processed: topic=orders offset=1042 - line 35","thread":"kafka-0","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:11:00.000Z","level":"WARN","message":"Rate limit exceeded for IP 10.0.0.5 - line 36","thread":"http-6","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:12:00.000Z","level":"INFO","message":"File upload: report.pdf (2.3MB) - line 37","thread":"http-7","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:13:00.000Z","level":"ERROR","message":"File upload failed: file too large (15MB > 10MB limit) - line 38","thread":"http-8","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:14:00.000Z","level":"INFO","message":"Email sent: to=alice@example.com template=welcome - line 39","thread":"email-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:15:00.000Z","level":"INFO","message":"SMS sent: to=+8613800138000 code=123456 - line 40","thread":"sms-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:16:00.000Z","level":"DEBUG","message":"WebSocket connection: session=ws_abc - line 41","thread":"ws-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:17:00.000Z","level":"INFO","message":"WebSocket message: type=chat user=42 size=256B - line 42","thread":"ws-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:18:00.000Z","level":"WARN","message":"WebSocket disconnect: session=ws_abc reason=timeout - line 43","thread":"ws-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:19:00.000Z","level":"INFO","message":"OAuth2 token refresh: client=app_a - line 44","thread":"http-9","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:20:00.000Z","level":"ERROR","message":"OAuth2 token refresh failed: invalid_grant - line 45","thread":"http-9","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:21:00.000Z","level":"INFO","message":"Database backup started - line 46","thread":"backup-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:22:00.000Z","level":"INFO","message":"Database backup completed: 256MB in 60s - line 47","thread":"backup-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:23:00.000Z","level":"INFO","message":"SSL certificate check: valid until 2024-12-31 - line 48","thread":"ssl-check","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:24:00.000Z","level":"WARN","message":"SSL certificate expires in 30 days - line 49","thread":"ssl-check","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:25:00.000Z","level":"INFO","message":"System status summary: 1000 req/min, 0.01% error rate - line 50","thread":"status-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:26:00.000Z","level":"INFO","message":"Application running for 26 minutes - line 51","thread":"uptime-1","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:27:00.000Z","level":"DEBUG","message":"GC stats: young=12ms old=45ms total=57ms - line 52","thread":"gc-monitor","logger":"com.example.Large"}
+{"timestamp":"2024-06-01T00:28:00.000Z","level":"INFO","message":"Thread dump: 142 threads total, 3 blocked - line 53","thread":"thread-mon","logger":"com.example.Large"}

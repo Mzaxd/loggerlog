@@ -1,0 +1,67 @@
+{
+  "format": "various",
+  "description": "Expected parse results for real-world simulation fixtures. These represent actual production log scenarios.",
+  "fixtures": {
+    "java_spring_app.log": {
+      "format": "logback",
+      "total_lines": 40,
+      "scenarios_tested": [
+        "Spring Boot application startup sequence",
+        "HikariCP connection pool initialization",
+        "HTTP request/response logging",
+        "Payment processing with Stripe API integration",
+        "Scheduled job execution (reconciliation, health check)",
+        "Kafka event consumption",
+        "Exception stack traces with caused-by chains",
+        "Stripe API exception handling"
+      ],
+      "level_distribution": {
+        "INFO": "~20",
+        "DEBUG": "~8",
+        "WARN": "~5",
+        "ERROR": "~3"
+      }
+    },
+    "python_service.log": {
+      "format": "custom_python",
+      "total_lines": 24,
+      "scenarios_tested": [
+        "FastAPI/Uvicorn server startup",
+        "PostgreSQL connection pool setup",
+        "Redis connection",
+        "HTTP request middleware logging",
+        "Database query logging",
+        "File upload size validation",
+        "Search index rebuild",
+        "Celery task execution",
+        "Python traceback formatting",
+        "CSV export task"
+      ]
+    },
+    "nodejs_app.jsonl": {
+      "format": "json",
+      "total_lines": 15,
+      "scenarios_tested": [
+        "Express/Fastify API Gateway startup",
+        "JWT token issuance",
+        "MongoDB and Redis connections",
+        "Rate limiting warnings",
+        "Circuit breaker pattern (open/half-open/closed states)",
+        "Upstream service timeout",
+        "Metrics reporting (p50/p95/p99 latency)"
+      ],
+      "extra_fields_per_entry": ["service", "method", "path", "statusCode", "duration", "userId", "clientIP", "traceId"]
+    },
+    "kubernetes_multi.log": {
+      "format": "mixed",
+      "total_lines": 26,
+      "scenarios_tested": [
+        "Multi-container pod logging (app + envoy + fluent-bit)",
+        "Spring Boot on Kubernetes",
+        "Envoy sidecar proxy logs",
+        "Fluent-bit log forwarder logs",
+        "Kubelet system events"
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# LoggerLog Test Fixture: Unstructured Plain Text
+# Logs that don't follow any recognizable pattern - parser should treat entire line as message
+
+Just some random log message
+Another line with no particular format
+Processing item 42 of 100
+Task completed successfully in 2.3 seconds
+Warning: disk space low on drive C:
+Error: network connection lost, attempting reconnection
+INFO: This is NOT a structured log - it just happens to start with INFO
+2024 is a year mentioned in the text but not part of a timestamp structure
+
+# Sometimes operators just type notes into log files
+Manual restart performed by admin@2024-01-15
+Deployment v2.3.1 rolled out to production

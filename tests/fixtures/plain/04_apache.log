@@ -1,0 +1,13 @@
+# LoggerLog Test Fixture: Apache HTTPD Combined/Error Log Format
+
+# Apache combined access log
+192.168.1.10 - frank [15/Jan/2024:10:00:00 +0000] "GET /index.html HTTP/1.1" 200 2326 "https://google.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+192.168.1.10 - - [15/Jan/2024:10:00:01 +0000] "GET /images/logo.png HTTP/1.1" 304 - "https://example.com/" "Mozilla/5.0"
+172.16.0.1 - - [15/Jan/2024:10:00:02 +0000] "POST /api/v1/data HTTP/1.1" 201 458 "-" "okhttp/4.12.0"
+
+# Apache error log
+[Mon Jan 15 10:00:03.123456 2024] [core:notice] [pid 1:tid 1400123456] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+[Mon Jan 15 10:00:04.234567 2024] [mpm_event:notice] [pid 1:tid 1400123456] AH00489: Apache/2.4.57 (Unix) configured -- resuming normal operations
+[Mon Jan 15 10:00:05.345678 2024] [authz_core:error] [pid 42:tid 1400123999] [client 203.0.113.1:54321] AH01630: client denied by server configuration: /var/www/private/
+[Mon Jan 15 10:00:06.456789 2024] [:warn] [pid 42:tid 1400124000] [client 10.0.0.1:12345] AH01585: Use of proxied host header in request
+[Mon Jan 15 10:00:07.567890 2024] [php:error] [pid 42:tid 1400124001] [client 192.168.1.1:11111] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted in /var/www/app.php on line 256

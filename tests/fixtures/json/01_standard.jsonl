@@ -1,0 +1,7 @@
+{"timestamp":"2024-01-15T10:23:45.123Z","level":"INFO","message":"Application started successfully","thread":"main","logger":"com.example.App"}
+{"timestamp":"2024-01-15T10:23:46.456Z","level":"DEBUG","message":"Loaded configuration from /etc/app/config.json","thread":"main","logger":"com.example.App"}
+{"timestamp":"2024-01-15T10:23:47.789Z","level":"INFO","message":"Listening on port 8080","thread":"main","logger":"com.example.App"}
+{"timestamp":"2024-01-15T10:23:50.012Z","level":"WARN","message":"Disk usage at 85%, threshold=80%","thread":"monitor-1","logger":"com.example.monitor.DiskMonitor"}
+{"timestamp":"2024-01-15T10:24:00.345Z","level":"ERROR","message":"Failed to connect to database: Connection refused","thread":"http-nio-8080-exec-3","logger":"com.example.db.ConnectionPool"}
+{"timestamp":"2024-01-15T10:24:05.678Z","level":"FATAL","message":"Out of memory: Java heap space","thread":"main","logger":"com.example.App"}
+{"timestamp":"2024-01-15T10:24:10.901Z","level":"TRACE","message":"Entering method: calculateTax(income=50000, rate=0.15)","thread":"worker-5","logger":"com.example.tax.TaxCalculator"}

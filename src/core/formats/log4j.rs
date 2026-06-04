@@ -36,12 +36,15 @@ fn logback_pattern() -> &'static Regex {
 }
 
 fn parse_timestamp(ts: &str) -> Option<chrono::DateTime<chrono::Utc>> {
-    // Try comma-separated milliseconds (log4j)
-    if let Ok(ndt) = NaiveDateTime::parse_from_str(ts, "%Y-%m-%d %H:%M:%S%.3f") {
+    // Normalize: replace comma→dot for ms, slash→hyphen for date (log4j variants)
+    let ts_normalized = ts.replace(',', ".").replace('/', "-");
+
+    // Try comma-separated milliseconds (log4j) — now handled above via normalization
+    if let Ok(ndt) = NaiveDateTime::parse_from_str(&ts_normalized, "%Y-%m-%d %H:%M:%S%.3f") {
         return Some(ndt.and_utc());
     }
     // Try dot-separated milliseconds (logback)
-    if let Ok(ndt) = NaiveDateTime::parse_from_str(ts, "%Y-%m-%d %H:%M:%S%.f") {
+    if let Ok(ndt) = NaiveDateTime::parse_from_str(&ts_normalized, "%Y-%m-%d %H:%M:%S%.f") {
         return Some(ndt.and_utc());
     }
     // Try ISO8601

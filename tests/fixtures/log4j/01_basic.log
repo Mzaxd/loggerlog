@@ -1,0 +1,11 @@
+# LoggerLog Test Fixture: Log4j Basic Format
+# This file contains standard log4j PatternLayout log entries:
+# %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] %c - %m%n
+
+2024-01-15 10:23:45,123 INFO  [main] com.example.App - Application started successfully
+2024-01-15 10:23:45,234 DEBUG [main] com.example.App - Configuration loaded from /etc/app/config.properties
+2024-01-15 10:23:46,345 INFO  [main] com.example.App - Listening on port 8080
+2024-01-15 10:23:50,456 WARN  [worker-1] com.example.service.UserService - User session timeout for user_id=42, last activity was 30 minutes ago
+2024-01-15 10:24:00,567 ERROR [http-nio-8080-exec-1] com.example.controller.UserController - Failed to fetch user profile: user_id=999 not found in database
+2024-01-15 10:24:05,678 FATAL [main] com.example.App - Out of memory: heap space exhausted after processing 10000 requests
+2024-01-15 10:24:10,789 DEBUG [pool-3-thread-7] com.example.service.NotificationService - Sending push notification to device_token=abc123def456

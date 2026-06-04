@@ -1,0 +1,18 @@
+# LoggerLog Test Fixture: Structured Plain Text
+# Logs with recognizable timestamp and level patterns that the plain parser should extract
+# These are NOT log4j/logback - they use various custom formats
+
+2024-01-15 10:00:00 INFO: User authentication service started
+2024-01-15 10:00:05 DEBUG: Loading encryption keys from /secure/keys/
+2024-01-15 10:00:10 WARNING: TLS certificate expires in 30 days
+2024-01-15 10:00:15 ERROR: Failed to bind to port 443: permission denied
+2024-01-15 10:00:20 FATAL: Unable to start server - exiting with code 1
+
+2024/01/15 10:01:00 INFO  Starting maintenance window
+2024/01/15 10:01:30 DEBUG Performing integrity check on database tables
+2024/01/15 10:02:00 WARN  Found 3 orphaned records in orders table
+2024/01/15 10:02:30 ERROR Integrity check failed: foreign key violation in payments table
+
+2024-01-15T10:03:00Z INFO Backup process started
+2024-01-15T10:03:30+08:00 DEBUG Compression algorithm: zstd level=3
+2024-01-15T10:04:00.500Z INFO Backup completed: 1.2GB in 60s

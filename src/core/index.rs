@@ -67,24 +67,27 @@ impl IndexManager {
             CREATE VIRTUAL TABLE IF NOT EXISTS log_entries_fts USING fts5(
                 message,
                 raw,
+                fields_json,
                 content='log_entries',
                 content_rowid='id',
                 tokenize='unicode61 remove_diacritics 1'
             );
 
             CREATE TRIGGER IF NOT EXISTS log_entries_ai AFTER INSERT ON log_entries BEGIN
-                INSERT INTO log_entries_fts(rowid, message, raw) VALUES (new.id, new.message, new.raw);
+                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
+                    VALUES (new.id, new.message, new.raw, new.fields_json);
             END;
 
             CREATE TRIGGER IF NOT EXISTS log_entries_ad AFTER DELETE ON log_entries BEGIN
-                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw)
-                    VALUES('delete', old.id, old.message, old.raw);
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
+                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
             END;
 
             CREATE TRIGGER IF NOT EXISTS log_entries_au AFTER UPDATE ON log_entries BEGIN
-                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw)
-                    VALUES('delete', old.id, old.message, old.raw);
-                INSERT INTO log_entries_fts(rowid, message, raw) VALUES (new.id, new.message, new.raw);
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
+                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
+                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
+                    VALUES (new.id, new.message, new.raw, new.fields_json);
             END;"
         )?;
 
@@ -111,6 +114,14 @@ impl IndexManager {
             self.migrate_v2()?;
             self.conn.execute(
                 "INSERT INTO schema_version (version) VALUES (2)",
+                [],
+            )?;
+        }
+
+        if version < 3 {
+            self.migrate_v3()?;
+            self.conn.execute(
+                "INSERT INTO schema_version (version) VALUES (3)",
                 [],
             )?;
         }
@@ -145,6 +156,57 @@ impl IndexManager {
         // Create index after column exists
         self.conn.execute_batch(
             "CREATE INDEX IF NOT EXISTS idx_files_project ON files(project_id);"
+        )?;
+
+        Ok(())
+    }
+
+    /// v3: Add fields_json to FTS5 index so JSON log extra fields are searchable
+    fn migrate_v3(&self) -> Result<()> {
+        // 1. Drop old FTS5 table and triggers
+        self.conn.execute_batch(
+            "DROP TRIGGER IF EXISTS log_entries_ai;
+             DROP TRIGGER IF EXISTS log_entries_ad;
+             DROP TRIGGER IF EXISTS log_entries_au;
+             DROP TABLE IF EXISTS log_entries_fts;"
+        )?;
+
+        // 2. Recreate FTS5 table with fields_json column
+        self.conn.execute_batch(
+            "CREATE VIRTUAL TABLE log_entries_fts USING fts5(
+                message,
+                raw,
+                fields_json,
+                content='log_entries',
+                content_rowid='id',
+                tokenize='unicode61 remove_diacritics 1'
+            );"
+        )?;
+
+        // 3. Rebuild FTS index from existing log entries
+        self.conn.execute_batch(
+            "INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
+             SELECT id, message, raw, fields_json FROM log_entries;"
+        )?;
+
+        // 4. Recreate triggers with fields_json support
+        self.conn.execute_batch(
+            "CREATE TRIGGER log_entries_ai AFTER INSERT ON log_entries BEGIN
+                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
+                    VALUES (new.id, new.message, new.raw, new.fields_json);
+             END;
+
+             CREATE TRIGGER log_entries_ad AFTER DELETE ON log_entries BEGIN
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
+                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
+             END;
+
+             CREATE TRIGGER log_entries_au AFTER UPDATE ON log_entries BEGIN
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
+                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
+                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
+                    VALUES (new.id, new.message, new.raw, new.fields_json);
+             END;"
         )?;
 
         Ok(())

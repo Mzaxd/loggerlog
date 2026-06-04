@@ -1,0 +1,33 @@
+# LoggerLog Test Fixture: Kubernetes Multi-Container Pod Logs
+# Simulates kubectl logs output from a pod with multiple containers
+# Mix of application, sidecar, and system-level logs
+
+# === Container: app (Spring Boot application) ===
+2024-12-01 00:00:00.123  INFO --- [main] com.example.k8s.App : Starting Kubernetes Demo App
+2024-12-01 00:00:05.456  INFO --- [main] com.example.k8s.App : Profiles: kubernetes
+2024-12-01 00:00:10.789  INFO --- [main] com.example.k8s.App : Started in 10.5s
+2024-12-01 00:01:00.100  INFO --- [http-1] com.example.k8s.controller.HealthController : Liveness probe: UP
+2024-12-01 00:01:30.200  INFO --- [http-2] com.example.k8s.controller.HealthController : Readiness probe: UP (db=OK, redis=OK)
+
+# === Container: envoy (sidecar proxy) ===
+[2024-12-01T00:00:00.000Z] INFO  envoy main - initializing envoy (version: 1.28.0)
+[2024-12-01T00:00:01.000Z] INFO  envoy config - loading bootstrap from /etc/envoy/envoy.yaml
+[2024-12-01T00:00:02.000Z] INFO  envoy upstream - adding cluster: app-service (endpoints: 127.0.0.1:8080)
+[2024-12-01T00:00:03.000Z] INFO  envoy main - starting main dispatch loop
+[2024-12-01T00:01:00.100Z] INFO  envoy filter - HTTP/1.1 GET /api/health 200 1ms - x-request-id: abc-123
+[2024-12-01T00:01:30.200Z] INFO  envoy filter - HTTP/1.1 GET /api/data 200 45ms - x-request-id: def-456
+[2024-12-01T00:02:00.300Z] WARN  envoy upstream - retry: GET /api/external failed (attempt 1/3, reason: connection refused)
+[2024-12-01T00:02:01.500Z] INFO  envoy upstream - retry successful: GET /api/external (attempt 2/3)
+
+# === Container: fluent-bit (log forwarder) ===
+2024-12-01 00:00:00.000000000 +0000 fluent-bit.info: [engine] started
+2024-12-01 00:00:00.100000000 +0000 fluent-bit.info: [input:tail] listening on /var/log/containers/*.log
+2024-12-01 00:00:00.200000000 +0000 fluent-bit.info: [output:opensearch] connected to opensearch.logging.svc:9200
+2024-12-01 00:01:00.000000000 +0000 fluent-bit.info: [output:opensearch] 150 records sent (batch 1, latency: 234ms)
+
+# === System / Kubelet events ===
+Dec  1 00:00:00 k8s-node-3 kubelet[1234]: INFO: Pod sandbox changed for payment-svc-7d8f, will restart
+Dec  1 00:00:05 k8s-node-3 kubelet[1234]: INFO: SyncLoop ADD for pod payment-svc-7d8f
+Dec  1 00:00:10 k8s-node-3 kubelet[1234]: INFO: Started container app in pod payment-svc-7d8f
+Dec  1 00:00:12 k8s-node-3 kubelet[1234]: INFO: Started container envoy in pod payment-svc-7d8f
+Dec  1 00:00:14 k8s-node-3 kubelet[1234]: INFO: Started container fluent-bit in pod payment-svc-7d8f

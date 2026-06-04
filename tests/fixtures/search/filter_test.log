@@ -1,0 +1,19 @@
+# LoggerLog Test Fixture: Filter Test Data
+# Contains log entries designed to test all filter combinations:
+# level, source, after/before, thread, logger, project, module, exclude
+
+2025-02-01 00:00:00,000 TRACE [trace-1] com.filters.debug.DeepTrace - Entering recursive function depth=5
+2025-02-01 00:00:01,000 DEBUG [debug-1] com.filters.debug.QueryLogger - SQL: SELECT * FROM audit_log WHERE created_at > '2025-01-01'
+2025-02-01 00:00:02,000 INFO  [info-1] com.filters.business.OrderService - Order #1001 created for user=42
+2025-02-01 00:00:03,000 INFO  [info-2] com.filters.business.OrderService - Order #1002 created for user=99
+2025-02-01 00:00:04,000 WARN  [warn-1] com.filters.monitor.DiskMonitor - Disk usage on /data: 85%
+2025-02-01 00:00:05,000 WARN  [warn-2] com.filters.monitor.MemoryMonitor - Heap usage: 78% (799MB/1024MB)
+2025-02-01 00:00:06,000 ERROR [error-1] com.filters.api.PaymentController - Payment failed: insufficient funds (user=42, amount=500.00)
+2025-02-01 00:00:07,000 ERROR [error-2] com.filters.api.UserController - User not found: id=999999
+2025-02-01 00:00:08,000 FATAL [main] com.filters.App - System shutting down: database unreachable
+2025-02-01 00:30:00,000 INFO  [scheduler-1] com.filters.jobs.DailyReport - Daily report for 2025-02-01: 5000 orders
+2025-02-01 01:00:00,000 INFO  [info-1] com.filters.business.OrderService - Order #1003 created for user=42
+2025-02-01 01:30:00,000 WARN  [warn-3] com.filters.network.ConnectionPool - Connection pool nearly exhausted: 18/20
+2025-02-01 02:00:00,000 ERROR [error-3] com.filters.external.PaymentGateway - Gateway timeout after 30000ms
+2025-02-01 02:30:00,000 INFO  [info-3] com.filters.business.RefundService - Refund #5001 processed: order=1002, amount=99.99
+2025-02-01 03:00:00,000 DEBUG [debug-2] com.filters.cache.CacheManager - Cache eviction: removed 150 expired entries

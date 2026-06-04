@@ -1,0 +1,34 @@
+# LoggerLog Test Fixture: Python Microservice Log
+# Realistic production log from a Python FastAPI service
+# Mix of structured and semi-structured logging
+
+2024-10-01 06:00:00,000 - uvicorn - INFO - Started server process [1]
+2024-10-01 06:00:00,100 - uvicorn - INFO - Waiting for application startup
+2024-10-01 06:00:00,200 - app.main - INFO - Initializing UserProfileService v1.5.2
+2024-10-01 06:00:00,300 - app.database - INFO - Connecting to PostgreSQL at 10.0.0.5:5432/userdb
+2024-10-01 06:00:00,500 - app.database - INFO - Connection pool created: min=5, max=20
+2024-10-01 06:00:00,600 - app.redis - INFO - Redis connection established at 10.0.0.6:6379/0
+2024-10-01 06:00:00,700 - app.main - INFO - Service ready, listening on 0.0.0.0:8000 (workers=4)
+2024-10-01 06:00:01,000 - uvicorn - INFO - Application startup complete
+2024-10-01 06:01:00,100 - app.middleware - INFO - GET /health from 10.0.1.5 - 200 OK - 1ms
+2024-10-01 06:01:15,200 - app.middleware - INFO - GET /api/v1/users/42001 from 192.168.1.50
+2024-10-01 06:01:15,210 - app.services.user - DEBUG - Fetching user 42001 from database
+2024-10-01 06:01:15,215 - app.database - DEBUG - Query: SELECT * FROM users WHERE id=$1 - params: [42001] - time: 2ms
+2024-10-01 06:01:15,220 - app.services.user - INFO - User 42001 found: john.doe@example.com (active=True)
+2024-10-01 06:01:15,225 - app.middleware - INFO - GET /api/v1/users/42001 - 200 OK - 25ms
+2024-10-01 06:01:30,300 - app.services.user - WARNING - User 42001 avatar upload exceeded size limit: 15MB > 5MB
+2024-10-01 06:01:30,310 - app.middleware - INFO - POST /api/v1/users/42001/avatar - 413 Request Entity Too Large - 12ms
+2024-10-01 06:02:00,400 - app.services.search - INFO - Rebuilding search index for users collection
+2024-10-01 06:02:05,500 - app.services.search - INFO - Search index rebuilt: 150000 documents in 5.1s
+2024-10-01 06:03:00,600 - app.middleware - ERROR - POST /api/v1/users - Unhandled exception
+Traceback (most recent call last):
+  File "/app/services/user.py", line 89, in create_user
+    user = await db.insert_user(data)
+  File "/app/database.py", line 156, in insert_user
+    raise DuplicateEmailError(f"Email {data.email} already exists")
+app.exceptions.DuplicateEmailError: Email john.doe@example.com already exists
+2024-10-01 06:03:00,610 - app.middleware - INFO - POST /api/v1/users - 409 Conflict - 10ms
+2024-10-01 06:05:00,700 - celery.worker - INFO - Task cleanup_expired_tokens[task_id=abc-123] started
+2024-10-01 06:05:01,800 - celery.worker - INFO - Task cleanup_expired_tokens[task_id=abc-123] completed: deleted 42 expired tokens
+2024-10-01 06:10:00,900 - app.services.export - INFO - Export started: format=csv, date_range=2024-09-01..2024-09-30
+2024-10-01 06:10:05,000 - app.services.export - INFO - Export completed: 50000 rows, file=/tmp/export_20241001.csv (3.2MB)

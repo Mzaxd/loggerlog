@@ -1,0 +1,9 @@
+# LoggerLog Test Fixture: GB2312 Encoded Chinese Log
+# This file is encoded in GB2312 (simplified Chinese)
+# The chardetng encoding detector should correctly identify this as GB18030/GBK
+
+2025-03-15 10:00:00,123 INFO  [main] com.example.app - 系统启动成功
+2025-03-15 10:00:01,234 DEBUG [main] com.example.app - 配置文件加载完成
+2025-03-15 10:00:02,345 WARN  [main] com.example.app - 磁盘空间不足警告：剩余空间 5%
+2025-03-15 10:00:03,456 ERROR [main] com.example.app - 数据库连接失败：连接超时
+2025-03-15 10:00:04,567 INFO  [main] com.example.app - 程序正常退出，再见！

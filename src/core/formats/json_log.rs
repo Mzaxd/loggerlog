@@ -121,12 +121,18 @@ fn extract_timestamp(obj: &serde_json::Map<String, serde_json::Value>) -> Option
         return Some(dt.with_timezone(&chrono::Utc));
     }
 
-    // Try common formats
+    // Try common formats with various fractional second precisions
     for fmt in [
+        "%Y-%m-%d %H:%M:%S%.9f",
+        "%Y-%m-%d %H:%M:%S%.6f",
         "%Y-%m-%d %H:%M:%S%.3f",
         "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S%.9f",
+        "%Y-%m-%dT%H:%M:%S%.6f",
         "%Y-%m-%dT%H:%M:%S%.3f",
         "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S%.9fZ",
+        "%Y-%m-%dT%H:%M:%S%.6fZ",
         "%Y-%m-%dT%H:%M:%S%.3fZ",
         "%Y-%m-%dT%H:%M:%SZ",
     ] {

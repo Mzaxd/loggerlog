@@ -1,0 +1,13 @@
+# LoggerLog Test Fixture: Log4j Thread Names & Logger Names
+# Tests various thread naming conventions and logger naming patterns
+
+2024-02-20 14:30:00,100 INFO  [main] com.example.App - Main thread startup message
+2024-02-20 14:30:01,200 DEBUG [worker-1] c.m.App - Abbreviated logger name pattern
+2024-02-20 14:30:02,300 INFO  [http-nio-8080-exec-1] com.example.controller.UserController - Tomcat thread pool naming
+2024-02-20 14:30:03,400 WARN  [pool-3-thread-7] org.springframework.boot.SpringApplication - Spring thread pool naming
+2024-02-20 14:30:04,500 ERROR [scheduling-1] com.example.scheduler.CronJob - Scheduled task thread naming
+2024-02-20 14:30:05,600 INFO  [ForkJoinPool.commonPool-worker-3] com.example.parallel.ParallelProcessor - ForkJoinPool thread naming
+2024-02-20 14:30:06,700 DEBUG [reactor-http-nio-1] reactor.netty.http.server.HttpServer - Reactor Netty thread naming
+2024-02-20 14:30:07,800 INFO  [kafka-consumer-0] com.example.messaging.KafkaConsumer - Kafka consumer thread naming
+2024-02-20 14:30:08,900 WARN  [vert.x-eventloop-thread-0] com.example.vertx.MainVerticle - Vert.x event loop thread naming
+2024-02-20 14:30:09,000 ERROR [grpc-default-executor-2] com.example.grpc.AuthService - gRPC executor thread naming

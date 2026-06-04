@@ -1,0 +1,11 @@
+{"timestamp":"2024-04-01T00:00:00.000Z","level":"INFO","message":"ISO8601 with milliseconds and Z"}
+{"timestamp":"2024-04-01T00:00:01Z","level":"INFO","message":"ISO8601 without milliseconds but with Z"}
+{"timestamp":"2024-04-01T00:00:02.000+08:00","level":"INFO","message":"ISO8601 with milliseconds and positive timezone offset"}
+{"timestamp":"2024-04-01T00:00:03-05:00","level":"INFO","message":"ISO8601 without milliseconds, negative timezone offset"}
+{"timestamp":"2024-04-01 00:00:04.000","level":"INFO","message":"Space separator with milliseconds"}
+{"timestamp":"2024-04-01 00:00:05","level":"INFO","message":"Space separator without milliseconds"}
+{"timestamp":"2024-04-01T00:00:06","level":"INFO","message":"ISO8601 without seconds fraction"}
+{"@timestamp":"1711929600000","level":"INFO","message":"Epoch milliseconds (1711929600000 = 2024-04-01T00:00:00Z)"}
+{"time":"1711929600","level":"INFO","message":"Epoch seconds (1711929600 = 2024-04-01T00:00:00Z)"}
+{"ts":"2024-04-01T00:00:09.999999","level":"INFO","message":"ISO8601 with microsecond precision"}
+{"timestamp":"2024-04-01T00:00:10.000Z","level":"INFO","message":"Timestamp field with @timestamp, time, and ts all available - should prefer timestamp"}

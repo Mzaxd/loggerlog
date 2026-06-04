@@ -1,0 +1,84 @@
+{
+  "format": "json",
+  "description": "Expected parse results for JSON structured log test fixtures",
+  "fixtures": {
+    "01_standard.jsonl": {
+      "format": "json",
+      "total_lines": 7,
+      "entries": [
+        {"line_number": 1, "level": "INFO", "thread": "main", "logger": "com.example.App", "message": "Application started successfully"},
+        {"line_number": 2, "level": "DEBUG", "thread": "main", "logger": "com.example.App", "message": "Loaded configuration from /etc/app/config.json"},
+        {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.App", "message": "Listening on port 8080"},
+        {"line_number": 4, "level": "WARN", "thread": "monitor-1", "logger": "com.example.monitor.DiskMonitor", "message": "Disk usage at 85%, threshold=80%"},
+        {"line_number": 5, "level": "ERROR", "thread": "http-nio-8080-exec-3", "logger": "com.example.db.ConnectionPool", "message": "Failed to connect to database: Connection refused"},
+        {"line_number": 6, "level": "FATAL", "thread": "main", "logger": "com.example.App", "message": "Out of memory: Java heap space"},
+        {"line_number": 7, "level": "TRACE", "thread": "worker-5", "logger": "com.example.tax.TaxCalculator", "message": "Entering method: calculateTax(income=50000, rate=0.15)"}
+      ]
+    },
+    "02_alternative_fields.jsonl": {
+      "format": "json",
+      "total_lines": 7,
+      "note": "Tests alternative field names: time/severity/msg, @timestamp, ts/lvl/msg, class/logger_name",
+      "entries": [
+        {"line_number": 1, "level": "INFO", "thread": "health-check", "logger": "com.example.HealthService", "message": "Service health check passed"},
+        {"line_number": 2, "level": "DEBUG", "thread": null, "logger": "com.example.cache.CacheManager", "message": "Cache hit: key=user:42, TTL=240s"},
+        {"line_number": 3, "level": "WARN", "thread": "rate-limiter", "logger": null, "message": "Rate limit approaching: 95/100 requests per minute"},
+        {"line_number": 4, "level": "ERROR", "thread": "http-nio-8080-exec-7", "logger": "com.example.payment.PaymentGateway", "message": "Payment gateway timeout after 30000ms"},
+        {"line_number": 5, "level": "INFO", "thread": null, "logger": "com.example.batch.BatchProcessor", "message": "Batch job completed: 5000 records in 12.3s"},
+        {"line_number": 6, "level": "FATAL", "thread": "pool-monitor", "logger": "com.example.db.PoolManager", "message": "Database connection pool exhausted"},
+        {"line_number": 7, "level": "TRACE", "thread": null, "logger": "com.example.lock.DistributedLock", "message": "Entering critical section: lock acquired in 2μs"}
+      ]
+    },
+    "03_extra_fields.jsonl": {
+      "format": "json",
+      "total_lines": 5,
+      "note": "Tests extra custom fields beyond standard log fields. fields_json should contain non-standard keys.",
+      "entries": [
+        {"line_number": 1, "level": "INFO", "thread": "http-1", "has_extra_fields": true},
+        {"line_number": 2, "level": "INFO", "thread": "http-2", "has_extra_fields": true},
+        {"line_number": 3, "level": "ERROR", "thread": "http-3", "has_extra_fields": true},
+        {"line_number": 4, "level": "WARN", "thread": "http-4", "has_extra_fields": true},
+        {"line_number": 5, "level": "DEBUG", "thread": "cache-1", "has_extra_fields": true}
+      ]
+    },
+    "04_timestamp_variants.jsonl": {
+      "format": "json",
+      "total_lines": 11,
+      "note": "Tests various timestamp formats and field names. All entries should have valid timestamps.",
+      "entries": [
+        {"line_number": 1, "level": "INFO", "has_timestamp": true, "message": "ISO8601 with milliseconds and Z"},
+        {"line_number": 2, "level": "INFO", "has_timestamp": true, "message": "ISO8601 without milliseconds but with Z"},
+        {"line_number": 3, "level": "INFO", "has_timestamp": true, "message": "ISO8601 with milliseconds and positive timezone offset"},
+        {"line_number": 4, "level": "INFO", "has_timestamp": true, "message": "ISO8601 without milliseconds, negative timezone offset"},
+        {"line_number": 5, "level": "INFO", "has_timestamp": true, "message": "Space separator with milliseconds"},
+        {"line_number": 6, "level": "INFO", "has_timestamp": true, "message": "Space separator without milliseconds"},
+        {"line_number": 7, "level": "INFO", "has_timestamp": true, "message": "ISO8601 without seconds fraction"},
+        {"line_number": 8, "level": "INFO", "has_timestamp": true, "message": "Epoch milliseconds (1711929600000 = 2024-04-01T00:00:00Z)"},
+        {"line_number": 9, "level": "INFO", "has_timestamp": true, "message": "Epoch seconds (1711929600 = 2024-04-01T00:00:00Z)"},
+        {"line_number": 10, "level": "INFO", "has_timestamp": true, "message": "ISO8601 with microsecond precision"},
+        {"line_number": 11, "level": "INFO", "has_timestamp": true, "message": "Timestamp field with @timestamp, time, and ts all available - should prefer timestamp"}
+      ]
+    },
+    "05_edge_cases.jsonl": {
+      "format": "json",
+      "total_lines": 11,
+      "note": "Tests edge cases: empty fields, null values, nested JSON, arrays, missing fields, unicode, emoji",
+      "entries": [
+        {"line_number": 1, "level": "INFO", "message": "", "thread": "", "logger": ""},
+        {"line_number": 2, "level": null, "message": "Level is null - should be parsed as no level"},
+        {"line_number": 3, "level": "INFO", "message": "正常的中文日志消息，包含标点符号：，。！？；：「」\""},
+        {"line_number": 4, "level": "INFO", "message": "Message with emoji: 🎉 🚀 ✅ ❌ ⚠️ 🔥 💾"},
+        {"line_number": 5, "level": "INFO", "thread": "main", "message": "Special characters: <>&\"'`"},
+        {"line_number": 8, "level": "INFO", "thread": "main", "has_extra_fields": true, "extra_field_keys": ["tags"]},
+        {"line_number": 9, "level": "INFO", "thread": "main", "has_extra_fields": true, "extra_field_keys": ["metadata"]},
+        {"line_number": 10, "level": "INFO", "message": null, "note": "Message field is missing - should default to empty string"},
+        {"line_number": 11, "message": "Numeric level value - level is 42 (int, not string) - as_str() should return None"}
+      ]
+    },
+    "06_large_sample.jsonl": {
+      "format": "json",
+      "note": "Large sample for auto-detect threshold testing. >50 lines.",
+      "total_lines_gte": 50
+    }
+  }
+}

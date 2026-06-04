@@ -31,6 +31,9 @@ env_logger = "0.11"
 encoding_rs = "0.8"
 chardetng = "0.1"
 
+# Compression support
+flate2 = "1"
+
 # File system watching
 notify = "7"
 notify-debouncer-mini = "0.5"
