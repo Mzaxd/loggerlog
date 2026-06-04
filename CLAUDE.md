@@ -45,7 +45,7 @@ cargo test --lib core::formats    # formats 子模块测试
 
 ## 架构
 
-### Rust 后端（`src-tauri/src/`）
+### Rust 后端（`src/`）
 
 **core/** — 核心引擎，零 clap 依赖的纯库：
 - `engine.rs` — SearchEngine：构建 FTS5 SQL 查询 + 正则回退，`parse_query_string()` 解析搜索语法（`level=ERROR`、`after=1h-ago`、`regex:...`、`project=`、`module=`）

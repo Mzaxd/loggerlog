@@ -1,6 +1,5 @@
 # Build outputs
-target/
-src-tauri/target/
+/target/
 
 # IDE
 .idea/
