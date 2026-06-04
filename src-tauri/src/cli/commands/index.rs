@@ -83,6 +83,17 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
     }
 
     println!("\nDone. {} files indexed, {} new entries.", files_indexed, total_new_entries);
+
+    // Sync project mappings after indexing
+    if !cfg.projects.projects.is_empty() {
+        println!("Syncing project mappings...");
+        if let Err(e) = idx.sync_projects(&cfg.projects.projects) {
+            eprintln!("Warning: project sync failed: {}", e);
+        } else {
+            println!("Project mappings synced.");
+        }
+    }
+
     Ok(())
 }
 
@@ -155,4 +166,104 @@ fn format_size(bytes: u64) -> String {
     } else {
         format!("{} B", bytes)
     }
+}
+
+/// Result of a quick incremental sync
+#[derive(Debug, Default)]
+pub struct SyncResult {
+    pub files_scanned: usize,
+    pub files_updated: usize,
+    pub new_entries: u64,
+}
+
+/// Quick incremental sync: index only new content in configured directories.
+/// Silent by default — the caller decides whether to print results.
+/// Handles log rotation (file truncation) by detecting size shrink and re-indexing.
+pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
+    let cfg = config::load(config_path)?;
+    if cfg.sources.directories.is_empty() {
+        return Ok(SyncResult::default());
+    }
+
+    let idx = IndexManager::open(&cfg.general.database_path)?;
+    let discovered = FileDiscovery::scan_directories(&cfg.sources.directories);
+    let max_file_size = config::parse_size(&cfg.general.max_file_size);
+
+    let mut result = SyncResult::default();
+
+    for file in &discovered {
+        if file.size > max_file_size && !file.is_rotated {
+            continue;
+        }
+        if file.is_compressed {
+            continue;
+        }
+
+        let file_path = file.path.to_string_lossy().to_string();
+        let file_id = idx.get_or_create_file(&file_path)?;
+        let file_size = file.size as i64;
+
+        // Point query instead of loading all files
+        let existing = idx.get_file_by_path(&file_path)?;
+        let stored_offset = existing.as_ref().map(|f| f.byte_offset).unwrap_or(0);
+        let stored_line_count = existing.as_ref().map(|f| f.line_count).unwrap_or(0);
+
+        result.files_scanned += 1;
+
+        // No change — skip entirely
+        if file_size == stored_offset {
+            continue;
+        }
+
+        let (entries, format_str) = if file_size < stored_offset {
+            // Log rotation detected: file was truncated, re-index from start
+            idx.clear_file_entries(file_id)?;
+            let content = encoding::read_file_to_utf8(&file_path, None);
+            let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+            let parser = LogLineParser::auto_detect(&lines);
+            let fmt = parser.format.to_string();
+            let entries = parser.parse_lines(&content, file_id, 0);
+            (entries, fmt)
+        } else {
+            // Normal incremental: read only bytes after offset
+            let content = match encoding::read_file_from_offset(&file_path, stored_offset as u64) {
+                Ok(c) => c,
+                Err(_) => {
+                    // Fallback: full read if seek fails (e.g. encoding issue)
+                    encoding::read_file_to_utf8(&file_path, None)
+                }
+            };
+            if content.trim().is_empty() {
+                continue;
+            }
+            let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
+            let parser = LogLineParser::auto_detect(&lines);
+            let entries = parser.parse_lines(&content, file_id, stored_offset as u64);
+            let fmt = existing.as_ref()
+                .map(|f| f.format.clone())
+                .unwrap_or_else(|| "unknown".to_string());
+            (entries, fmt)
+        };
+
+        if !entries.is_empty() {
+            idx.insert_entries(&entries)?;
+            result.new_entries += entries.len() as u64;
+        }
+
+        let line_count = if file_size < stored_offset {
+            entries.len() as i64
+        } else {
+            stored_line_count + entries.len() as i64
+        };
+
+        idx.update_file(file_id, file_size, file_size, line_count, &format_str)?;
+        result.files_updated += 1;
+    }
+
+    // Sync project mappings
+    if !cfg.projects.projects.is_empty() {
+        let _ = idx.sync_projects(&cfg.projects.projects);
+    }
+
+    Ok(result)
 }

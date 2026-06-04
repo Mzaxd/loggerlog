@@ -1,6 +1,6 @@
 use encoding_rs::Encoding;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 
 /// Detect the encoding of a file by sampling its first bytes
 pub fn detect_encoding(file_path: &str) -> &'static Encoding {
@@ -65,4 +65,17 @@ pub fn read_file_to_utf8(file_path: &str, encoding_override: Option<&str>) -> St
 pub fn read_lines(file_path: &str, encoding_override: Option<&str>) -> Vec<String> {
     let content = read_file_to_utf8(file_path, encoding_override);
     content.lines().map(|l| l.to_string()).collect()
+}
+
+/// Read file content starting from a byte offset (for incremental indexing).
+/// Seeks to `byte_offset` and reads only the remaining bytes.
+pub fn read_file_from_offset(file_path: &str, byte_offset: u64) -> anyhow::Result<String> {
+    let mut file = File::open(file_path)
+        .map_err(|e| anyhow::anyhow!("Failed to open {}: {}", file_path, e))?;
+    file.seek(SeekFrom::Start(byte_offset))
+        .map_err(|e| anyhow::anyhow!("Failed to seek in {}: {}", file_path, e))?;
+    let mut content = String::new();
+    BufReader::new(file).read_to_string(&mut content)
+        .map_err(|e| anyhow::anyhow!("Failed to read {}: {}", file_path, e))?;
+    Ok(content)
 }

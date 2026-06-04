@@ -1,9 +1,7 @@
 pub mod commands;
 
-#[cfg(feature = "cli")]
 use clap::Parser;
 
-#[cfg(feature = "cli")]
 #[derive(Parser)]
 #[command(name = "loggerlog")]
 #[command(about = "Lightweight log search tool", long_about = None)]
@@ -21,10 +19,9 @@ struct Cli {
     output: Option<OutputFormat>,
 }
 
-#[cfg(feature = "cli")]
 #[derive(clap::Subcommand)]
 enum Commands {
-    /// Search indexed log entries
+        /// Search indexed log entries
     Search {
         /// Search query (FTS5 syntax or regex: prefix)
         query: String,
@@ -36,6 +33,14 @@ enum Commands {
         /// Filter by source file glob
         #[arg(short, long)]
         source: Option<String>,
+
+        /// Filter by project name
+        #[arg(long)]
+        project: Option<String>,
+
+        /// Filter by module name (subdirectory within project)
+        #[arg(long)]
+        module: Option<String>,
 
         /// Only entries after this timestamp
         #[arg(long)]
@@ -64,6 +69,10 @@ enum Commands {
         /// Include surrounding context lines
         #[arg(short = 'C', long)]
         context: Option<u32>,
+
+        /// Skip automatic incremental sync before search
+        #[arg(long)]
+        no_sync: bool,
     },
 
     /// Tail / follow log files in real-time
@@ -96,11 +105,13 @@ enum Commands {
         action: IndexAction,
     },
 
-    /// Launch the GUI
-    Gui,
+    /// Manage projects and modules
+    Project {
+        #[command(subcommand)]
+        action: ProjectAction,
+    },
 }
 
-#[cfg(feature = "cli")]
 #[derive(clap::ValueEnum, Clone, Debug)]
 pub enum OutputFormat {
     Json,
@@ -108,7 +119,6 @@ pub enum OutputFormat {
     Raw,
 }
 
-#[cfg(feature = "cli")]
 impl std::fmt::Display for OutputFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -119,7 +129,6 @@ impl std::fmt::Display for OutputFormat {
     }
 }
 
-#[cfg(feature = "cli")]
 #[derive(clap::Subcommand)]
 pub enum ConfigAction {
     /// Show current configuration
@@ -144,7 +153,6 @@ pub enum ConfigAction {
     },
 }
 
-#[cfg(feature = "cli")]
 #[derive(clap::Subcommand)]
 pub enum IndexAction {
     /// Full re-index of all configured sources
@@ -157,22 +165,27 @@ pub enum IndexAction {
     Stats,
 }
 
-/// Check if the command line arguments indicate CLI mode
-#[cfg(feature = "cli")]
-pub fn is_cli_mode() -> bool {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 {
-        let second = args[1].to_lowercase();
-        matches!(
-            second.as_str(),
-            "search" | "tail" | "config" | "index" | "--help" | "-h" | "--version" | "-v"
-        )
-    } else {
-        false
-    }
+#[derive(clap::Subcommand)]
+pub enum ProjectAction {
+    /// Add a new project
+    Add {
+        /// Project name
+        name: String,
+        /// Root log directory path
+        path: String,
+        /// Recursive scan
+        #[arg(long, default_value = "true")]
+        recursive: bool,
+    },
+    /// Remove a project
+    Remove {
+        /// Project name
+        name: String,
+    },
+    /// List all projects and their modules
+    List,
 }
 
-#[cfg(feature = "cli")]
 pub fn run() {
     let cli = Cli::parse();
     let config_path = cli.config.clone();
@@ -183,6 +196,8 @@ pub fn run() {
             query,
             level,
             source,
+            project,
+            module,
             after,
             before,
             thread,
@@ -190,11 +205,13 @@ pub fn run() {
             limit,
             output,
             context,
+            no_sync,
         }) => {
             let output = global_output.unwrap_or(output);
             if let Err(e) = commands::search::run(&query, &level, source.as_deref(),
+                project.as_deref(), module.as_deref(),
                 after.as_deref(), before.as_deref(), thread.as_deref(),
-                regex, limit, context, &output, config_path.as_deref()) {
+                regex, limit, context, &output, config_path.as_deref(), no_sync) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
@@ -218,24 +235,14 @@ pub fn run() {
                 std::process::exit(1);
             }
         }
-        Some(Commands::Gui) => {
-            #[cfg(feature = "gui")]
-            crate::gui::run();
-            #[cfg(not(feature = "gui"))]
-            eprintln!("GUI feature not enabled. Rebuild with --features cli,gui");
+        Some(Commands::Project { action }) => {
+            if let Err(e) = commands::project::run(action, config_path.as_deref()) {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
         }
         None => {
             Cli::parse_from(["loggerlog", "--help"]);
         }
     }
-}
-
-#[cfg(not(feature = "cli"))]
-pub fn is_cli_mode() -> bool {
-    false
-}
-
-#[cfg(not(feature = "cli"))]
-pub fn run() {
-    eprintln!("CLI feature not enabled. Build with --features cli");
 }

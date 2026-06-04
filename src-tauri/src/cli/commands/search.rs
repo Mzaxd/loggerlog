@@ -9,6 +9,8 @@ pub fn run(
     query_str: &str,
     levels: &[String],
     source: Option<&str>,
+    project: Option<&str>,
+    module: Option<&str>,
     after: Option<&str>,
     before: Option<&str>,
     thread: Option<&str>,
@@ -17,7 +19,22 @@ pub fn run(
     _context_size: Option<u32>,
     output: &OutputFormat,
     config_path: Option<&str>,
+    no_sync: bool,
 ) -> Result<()> {
+    // Auto incremental sync before search (unless --no-sync)
+    if !no_sync {
+        match super::index::incremental_sync(config_path) {
+            Ok(result) if result.files_updated > 0 => {
+                eprintln!("[sync] {} files updated, {} new entries",
+                    result.files_updated, result.new_entries);
+            }
+            Err(e) => {
+                eprintln!("Warning: incremental sync failed: {}", e);
+            }
+            _ => {}
+        }
+    }
+
     let cfg = config::load(config_path)?;
     let idx = IndexManager::open(&cfg.general.database_path)?;
 
@@ -27,6 +44,12 @@ pub fn run(
     }
     if let Some(s) = source {
         sq.source = Some(s.to_string());
+    }
+    if let Some(p) = project {
+        sq.project = Some(p.to_string());
+    }
+    if let Some(m) = module {
+        sq.module = Some(m.to_string());
     }
     if let Some(a) = after {
         if let Some(dt) = engine::parse_relative_time(a) {
