@@ -239,7 +239,7 @@ pub fn extract_message(raw: &str) -> String {
         &raw[pos + 1..]
     } else {
         // No thread brackets — skip first 20% as a safe heuristic
-        let start = raw.len() / 5;
+        let start = raw.floor_char_boundary(raw.len() / 5);
         &raw[start..]
     };
 

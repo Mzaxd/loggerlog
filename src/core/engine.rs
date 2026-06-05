@@ -160,9 +160,9 @@ impl<'a> SearchEngine<'a> {
 
         // Fetch candidate rows — overscan if memory filters are active
         let scan_limit = if has_mem {
-            (query.limit + query.offset) * 10
+            100_000u64
         } else {
-            query.limit + query.offset
+            (query.limit + query.offset) as u64
         };
 
         let select_sql = format!(
@@ -233,8 +233,8 @@ impl<'a> SearchEngine<'a> {
         let start = Instant::now();
         let (where_clause, _params) = self.build_where_clause(query);
 
-        // Fetch more candidates for regex + memory filtering (up to 10x limit)
-        let scan_limit = query.limit * 10;
+        // Fetch more candidates for regex + memory filtering
+        let scan_limit = 100_000u64;
         let select_sql = format!(
             "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.raw
              FROM log_entries e

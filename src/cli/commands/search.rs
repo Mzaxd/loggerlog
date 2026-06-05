@@ -45,7 +45,9 @@ pub fn run(
 
     let mut sq = engine::parse_query_string(query_str, limit);
     if !levels.is_empty() {
-        sq.levels = levels.to_vec();
+        sq.levels = levels.iter()
+            .flat_map(|l| l.split(',').map(|s| s.trim().to_uppercase()))
+            .collect();
     }
     if let Some(s) = source {
         sq.source = Some(s.to_string());
@@ -409,7 +411,8 @@ fn format_summary(summary: &SearchSummary, output: &OutputFormat) -> String {
         s.push_str("\nTop messages:\n");
         for mc in summary.top_messages.iter().take(10) {
             let prefix = if mc.message_prefix.len() > 80 {
-                format!("{}...", &mc.message_prefix[..77])
+                let end = mc.message_prefix.floor_char_boundary(77);
+                format!("{}...", &mc.message_prefix[..end])
             } else {
                 mc.message_prefix.clone()
             };
