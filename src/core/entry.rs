@@ -1,23 +1,19 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// A single parsed log entry
+/// A single log entry — simplified to raw-only storage.
+/// Structured fields (timestamp, level, thread, logger, message) are extracted at query time
+/// by scanner functions, not stored in the database.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
     pub id: Option<i64>,
     pub file_id: i64,
     pub line_number: u64,
     pub byte_offset: u64,
-    pub timestamp: Option<DateTime<Utc>>,
-    pub level: Option<String>,
-    pub thread: Option<String>,
-    pub logger: Option<String>,
-    pub message: String,
-    pub fields_json: Option<String>,
     pub raw: String,
 }
 
-/// A search result with additional context
+/// A search result with display fields populated at query time from raw text.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub id: i64,
@@ -30,8 +26,39 @@ pub struct SearchResult {
     pub thread: Option<String>,
     pub logger: Option<String>,
     pub message: String,
-    pub fields_json: Option<String>,
     pub raw: String,
+}
+
+impl SearchResult {
+    /// Create a SearchResult from a raw log line, extracting all fields via scanner functions.
+    pub fn from_raw(
+        id: i64,
+        file_id: i64,
+        source: String,
+        line_number: u64,
+        byte_offset: u64,
+        raw: &str,
+    ) -> Self {
+        let level = crate::core::scanner::extract_level(raw);
+        let timestamp =
+            crate::core::scanner::extract_timestamp(raw).map(|dt| dt.to_rfc3339());
+        let thread = crate::core::scanner::extract_thread(raw);
+        let logger = crate::core::scanner::extract_logger(raw);
+        let message = crate::core::scanner::extract_message(raw);
+        Self {
+            id,
+            file_id,
+            source,
+            line_number,
+            byte_offset,
+            timestamp,
+            level,
+            thread,
+            logger,
+            message,
+            raw: raw.to_string(),
+        }
+    }
 }
 
 /// Search query parameters

@@ -1,9 +1,12 @@
 use crate::core::entry::{SearchQuery, SearchResult};
+use crate::core::scanner;
 use anyhow::Result;
 use rusqlite::{params, Connection};
 use std::time::Instant;
 
-/// Search engine that queries the SQLite FTS5 index
+/// Search engine that queries the SQLite FTS5 index.
+/// Structured field filtering (level, timestamp, thread, logger) is done at query time
+/// via scanner functions on raw text, not via SQL column filters.
 pub struct SearchEngine<'a> {
     conn: &'a Connection,
 }
@@ -13,8 +16,18 @@ impl<'a> SearchEngine<'a> {
         Self { conn }
     }
 
+    /// Check if a query has memory-level filters (applied after SQL fetch).
+    fn has_memory_filters(query: &SearchQuery) -> bool {
+        !query.levels.is_empty()
+            || query.after.is_some()
+            || query.before.is_some()
+            || query.thread.is_some()
+            || query.logger.is_some()
+    }
+
     /// Build WHERE clause conditions and params from a SearchQuery.
-    /// Returns (where_clause_string, params_vec) for use in SQL queries.
+    /// Only SQL-level filters (FTS, source, project, module, exclude on raw).
+    /// Level/timestamp/thread/logger are handled in memory via scanner.
     fn build_where_clause(&self, query: &SearchQuery) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>) {
         let mut conditions = vec!["1=1".to_string()];
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
@@ -25,15 +38,6 @@ impl<'a> SearchEngine<'a> {
                 "e.id IN (SELECT rowid FROM log_entries_fts WHERE log_entries_fts MATCH ?)".to_string()
             );
             params.push(Box::new(fts.clone()));
-        }
-
-        // Level filter
-        if !query.levels.is_empty() {
-            let placeholders: Vec<String> = query.levels.iter().map(|_| "?".to_string()).collect();
-            conditions.push(format!("level IN ({})", placeholders.join(",")));
-            for level in &query.levels {
-                params.push(Box::new(level.clone()));
-            }
         }
 
         // Source filter
@@ -51,7 +55,6 @@ impl<'a> SearchEngine<'a> {
         }
 
         // Module filter — match subdirectory name within project path
-        // Normalize path separators to '/' for cross-platform matching
         if let Some(ref module) = query.module {
             conditions.push(
                 "EXISTS (SELECT 1 FROM projects p WHERE f.project_id = p.id \
@@ -61,32 +64,9 @@ impl<'a> SearchEngine<'a> {
             params.push(Box::new(module.clone()));
         }
 
-        // Time range filters
-        if let Some(ref after) = query.after {
-            conditions.push("timestamp >= ?".to_string());
-            params.push(Box::new(after.to_rfc3339()));
-        }
-        if let Some(ref before) = query.before {
-            conditions.push("timestamp <= ?".to_string());
-            params.push(Box::new(before.to_rfc3339()));
-        }
-
-        // Thread filter
-        if let Some(ref thread) = query.thread {
-            conditions.push("thread LIKE ?".to_string());
-            params.push(Box::new(format!("%{}%", thread)));
-        }
-
-        // Logger filter
-        if let Some(ref logger) = query.logger {
-            conditions.push("logger LIKE ?".to_string());
-            params.push(Box::new(format!("%{}%", logger)));
-        }
-
-        // Exclude filter
+        // Exclude filter (raw-only, no message column)
         for keyword in &query.exclude {
-            conditions.push("(e.message NOT LIKE ? AND e.raw NOT LIKE ?)".to_string());
-            params.push(Box::new(format!("%{}%", keyword)));
+            conditions.push("e.raw NOT LIKE ?".to_string());
             params.push(Box::new(format!("%{}%", keyword)));
         }
 
@@ -97,70 +77,143 @@ impl<'a> SearchEngine<'a> {
     fn build_params_from_query(&self, query: &SearchQuery) -> Vec<Box<dyn rusqlite::types::ToSql>> {
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
         if let Some(ref fts) = query.fts_query { params.push(Box::new(fts.clone())); }
-        if !query.levels.is_empty() {
-            for level in &query.levels { params.push(Box::new(level.clone())); }
-        }
         if let Some(ref source) = query.source { params.push(Box::new(format!("%{}%", source))); }
         if let Some(ref project) = query.project { params.push(Box::new(project.clone())); }
         if let Some(ref module) = query.module { params.push(Box::new(module.clone())); }
-        if let Some(ref after) = query.after { params.push(Box::new(after.to_rfc3339())); }
-        if let Some(ref before) = query.before { params.push(Box::new(before.to_rfc3339())); }
-        if let Some(ref thread) = query.thread { params.push(Box::new(format!("%{}%", thread))); }
-        if let Some(ref logger) = query.logger { params.push(Box::new(format!("%{}%", logger))); }
         for keyword in &query.exclude {
-            params.push(Box::new(format!("%{}%", keyword)));
             params.push(Box::new(format!("%{}%", keyword)));
         }
         params
+    }
+
+    /// Apply in-memory filters using scanner functions.
+    /// Returns true if the raw line passes all filters.
+    fn matches_memory_filters(raw: &str, query: &SearchQuery) -> bool {
+        // Level filter
+        if !query.levels.is_empty() {
+            if let Some(level) = scanner::extract_level(raw) {
+                if !query.levels.iter().any(|l| l.eq_ignore_ascii_case(&level)) {
+                    return false;
+                }
+            } else {
+                return false; // no level found but filter requires one
+            }
+        }
+
+        // Timestamp filter
+        if let Some(ref after) = query.after {
+            if let Some(ts) = scanner::extract_timestamp(raw) {
+                if ts < *after {
+                    return false;
+                }
+            } else {
+                return false; // no timestamp but filter requires one
+            }
+        }
+        if let Some(ref before) = query.before {
+            if let Some(ts) = scanner::extract_timestamp(raw) {
+                if ts > *before {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        // Thread filter
+        if let Some(ref thread) = query.thread {
+            if let Some(t) = scanner::extract_thread(raw) {
+                if !t.contains(thread) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        // Logger filter
+        if let Some(ref logger) = query.logger {
+            if let Some(l) = scanner::extract_logger(raw) {
+                if !l.contains(logger) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Execute a search query and return results
     pub fn search(&self, query: &SearchQuery) -> Result<SearchResultSet> {
         let start = Instant::now();
         let (where_clause, count_params) = self.build_where_clause(query);
+        let has_mem = Self::has_memory_filters(query);
 
-        // Count total matching results
+        // Count total matching results (SQL level)
         let count_sql = format!(
             "SELECT COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {}", where_clause
         );
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = count_params.iter().map(|b| b.as_ref()).collect();
-        let total_count: u64 = self.conn.query_row(&count_sql, param_refs.as_slice(), |row| row.get(0))?;
+        let sql_total: u64 = self.conn.query_row(&count_sql, param_refs.as_slice(), |row| row.get(0))?;
 
-        // Fetch results with pagination — build fresh params with limit/offset appended
+        // Fetch candidate rows — overscan if memory filters are active
+        let scan_limit = if has_mem {
+            (query.limit + query.offset) * 10
+        } else {
+            query.limit + query.offset
+        };
+
         let select_sql = format!(
-            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.timestamp, e.level, e.thread, e.logger, e.message, e.fields_json, e.raw
+            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.raw
              FROM log_entries e
              JOIN files f ON e.file_id = f.id
              WHERE {}
-             ORDER BY e.timestamp DESC
-             LIMIT ? OFFSET ?",
+             ORDER BY e.id DESC
+             LIMIT ?",
             where_clause
         );
 
         let mut select_params = self.build_params_from_query(query);
-        select_params.push(Box::new(query.limit as i64));
-        select_params.push(Box::new(query.offset as i64));
+        select_params.push(Box::new(scan_limit as i64));
         let select_refs: Vec<&dyn rusqlite::types::ToSql> = select_params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&select_sql)?;
-        let rows = stmt.query_map(select_refs.as_slice(), |row| {
-            Ok(SearchResult {
-                id: row.get(0)?,
-                file_id: row.get(1)?,
-                source: row.get(2)?,
-                line_number: row.get::<_, i64>(3)? as u64,
-                byte_offset: row.get::<_, i64>(4)? as u64,
-                timestamp: row.get(5)?,
-                level: row.get(6)?,
-                thread: row.get(7)?,
-                logger: row.get(8)?,
-                message: row.get(9)?,
-                fields_json: row.get(10)?,
-                raw: row.get(11)?,
-            })
-        })?;
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(select_refs.as_slice(), |row| {
+            Ok((
+                row.get(0)?, row.get(1)?, row.get(2)?,
+                row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
+                row.get::<_, String>(5)?,
+            ))
+        })?.filter_map(|r| r.ok()).collect();
 
-        let results: Vec<SearchResult> = rows.filter_map(|r| r.ok()).collect();
+        // Apply memory filters
+        let filtered: Vec<(i64, i64, String, u64, u64, String)> = if has_mem {
+            rows.into_iter()
+                .filter(|(_, _, _, _, _, raw)| Self::matches_memory_filters(raw, query))
+                .collect()
+        } else {
+            rows
+        };
+
+        // Total count: if memory filters active, filtered count is approximate
+        let total_count = if has_mem {
+            filtered.len() as u64
+        } else {
+            sql_total
+        };
+
+        // Apply offset and limit
+        let results: Vec<SearchResult> = filtered
+            .into_iter()
+            .skip(query.offset as usize)
+            .take(query.limit as usize)
+            .map(|(id, file_id, source, line_number, byte_offset, raw)| {
+                SearchResult::from_raw(id, file_id, source, line_number, byte_offset, &raw)
+            })
+            .collect();
+
         let elapsed = start.elapsed();
 
         Ok(SearchResultSet {
@@ -180,14 +233,14 @@ impl<'a> SearchEngine<'a> {
         let start = Instant::now();
         let (where_clause, _params) = self.build_where_clause(query);
 
-        // Fetch more candidates for regex filtering (up to 10x limit)
+        // Fetch more candidates for regex + memory filtering (up to 10x limit)
         let scan_limit = query.limit * 10;
         let select_sql = format!(
-            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.timestamp, e.level, e.thread, e.logger, e.message, e.fields_json, e.raw
+            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.raw
              FROM log_entries e
              JOIN files f ON e.file_id = f.id
              WHERE {}
-             ORDER BY e.timestamp DESC
+             ORDER BY e.id DESC
              LIMIT ?",
             where_clause
         );
@@ -197,27 +250,21 @@ impl<'a> SearchEngine<'a> {
         let select_refs: Vec<&dyn rusqlite::types::ToSql> = select_params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&select_sql)?;
-        let rows = stmt.query_map(select_refs.as_slice(), |row| {
-            Ok(SearchResult {
-                id: row.get(0)?,
-                file_id: row.get(1)?,
-                source: row.get(2)?,
-                line_number: row.get::<_, i64>(3)? as u64,
-                byte_offset: row.get::<_, i64>(4)? as u64,
-                timestamp: row.get(5)?,
-                level: row.get(6)?,
-                thread: row.get(7)?,
-                logger: row.get(8)?,
-                message: row.get(9)?,
-                fields_json: row.get(10)?,
-                raw: row.get(11)?,
-            })
-        })?;
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(select_refs.as_slice(), |row| {
+            Ok((
+                row.get(0)?, row.get(1)?, row.get(2)?,
+                row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
+                row.get::<_, String>(5)?,
+            ))
+        })?.filter_map(|r| r.ok()).collect();
 
-        let mut results: Vec<SearchResult> = rows
-            .filter_map(|r| r.ok())
-            .filter(|r| re.is_match(&r.raw)
-                && !query.exclude.iter().any(|ex| r.raw.contains(ex)))
+        let mut results: Vec<SearchResult> = rows.into_iter()
+            .map(|(id, file_id, source, line_number, byte_offset, raw)| {
+                SearchResult::from_raw(id, file_id, source, line_number, byte_offset, &raw)
+            })
+            .filter(|r| re.is_match(&r.raw))
+            .filter(|r| Self::matches_memory_filters(&r.raw, query))
+            .filter(|r| !query.exclude.iter().any(|ex| r.raw.contains(ex)))
             .take(query.limit as usize)
             .collect();
 
@@ -236,143 +283,145 @@ impl<'a> SearchEngine<'a> {
 
     /// Get context lines around a specific entry
     pub fn get_context(&self, file_id: i64, line_number: u64, context_size: u32) -> Result<Vec<SearchResult>> {
-        let min_line = if line_number as i64 - context_size as i64 > 0 {
-            line_number - context_size as u64
-        } else {
-            1
-        };
+        let min_line = line_number.saturating_sub(context_size as u64);
         let max_line = line_number + context_size as u64 + 1;
 
         let mut stmt = self.conn.prepare(
-            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.timestamp, e.level, e.thread, e.logger, e.message, e.fields_json, e.raw
+            "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.raw
              FROM log_entries e
              JOIN files f ON e.file_id = f.id
              WHERE e.file_id = ? AND e.line_number >= ? AND e.line_number < ?
              ORDER BY e.line_number"
         )?;
 
-        let rows = stmt.query_map(params![file_id, min_line as i64, max_line as i64], |row| {
-            Ok(SearchResult {
-                id: row.get(0)?,
-                file_id: row.get(1)?,
-                source: row.get(2)?,
-                line_number: row.get::<_, i64>(3)? as u64,
-                byte_offset: row.get::<_, i64>(4)? as u64,
-                timestamp: row.get(5)?,
-                level: row.get(6)?,
-                thread: row.get(7)?,
-                logger: row.get(8)?,
-                message: row.get(9)?,
-                fields_json: row.get(10)?,
-                raw: row.get(11)?,
-            })
-        })?;
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(params![file_id, min_line as i64, max_line as i64], |row| {
+            Ok((
+                row.get(0)?, row.get(1)?, row.get(2)?,
+                row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
+                row.get::<_, String>(5)?,
+            ))
+        })?.filter_map(|r| r.ok()).collect();
 
-        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
+        let results: Vec<SearchResult> = rows.into_iter()
+            .map(|(id, file_id, source, line_number, byte_offset, raw)| {
+                SearchResult::from_raw(id, file_id, source, line_number, byte_offset, &raw)
+            })
+            .collect();
+
+        Ok(results)
     }
 
-    /// Get level distribution for the given query
+    /// Get level distribution for the given query.
+    /// Uses in-memory aggregation via scanner::extract_level.
     pub fn level_stats(&self, query: &SearchQuery) -> Result<Vec<LevelCount>> {
         let (where_clause, params) = self.build_where_clause(query);
+
+        // Fetch all raw lines for the query scope
+        let scan_limit = 500_000u64;
         let sql = format!(
-            "SELECT COALESCE(level,'UNKNOWN'), COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} GROUP BY level ORDER BY COUNT(*) DESC",
-            where_clause
+            "SELECT e.raw FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} LIMIT {}",
+            where_clause, scan_limit
         );
-        let mut stmt = self.conn.prepare(&sql)?;
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
-        let rows: Vec<LevelCount> = stmt.query_map(param_refs.as_slice(), |row| {
-            Ok(LevelCount {
-                level: row.get::<_, String>(0)?,
-                count: row.get(1)?,
-            })
-        })?.filter_map(|r| r.ok()).collect();
-        Ok(rows)
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows: Vec<String> = stmt.query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .filter(|raw| Self::matches_memory_filters(raw, query))
+            .collect();
+
+        // Aggregate in memory
+        let mut counts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+        for raw in &rows {
+            let level = scanner::extract_level(raw).unwrap_or_else(|| "UNKNOWN".to_string());
+            *counts.entry(level).or_insert(0) += 1;
+        }
+
+        let mut result: Vec<LevelCount> = counts.into_iter()
+            .map(|(level, count)| LevelCount { level, count })
+            .collect();
+        result.sort_by(|a, b| b.count.cmp(&a.count));
+        Ok(result)
     }
 
     /// Generate an aggregated summary from the same WHERE clause as a normal search.
+    /// Uses in-memory aggregation via scanner functions.
     pub fn search_summary(&self, query: &SearchQuery, top_n: usize) -> Result<SearchSummary> {
         let start = Instant::now();
         let (where_clause, params) = self.build_where_clause(query);
 
-        let count_sql = format!(
-            "SELECT COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {}",
-            where_clause
+        let scan_limit = 500_000u64;
+        let sql = format!(
+            "SELECT e.raw, f.path FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} LIMIT {}",
+            where_clause, scan_limit
         );
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
-        let total_count: u64 = self.conn.query_row(
-            &count_sql, param_refs.as_slice(), |row| row.get(0)
-        )?;
 
-        // Level distribution
-        let level_sql = format!(
-            "SELECT COALESCE(level,'UNKNOWN'), COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} GROUP BY level ORDER BY COUNT(*) DESC",
-            where_clause
-        );
-        let level_param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
-        let level_distribution: Vec<LevelCount> = {
-            let mut stmt = self.conn.prepare(&level_sql)?;
-            let rows: Vec<LevelCount> = stmt.query_map(level_param_refs.as_slice(), |row| {
-                Ok(LevelCount {
-                    level: row.get::<_, String>(0)?,
-                    count: row.get(1)?,
-                })
-            })?.filter_map(|r| r.ok()).collect();
-            rows
-        };
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows: Vec<(String, String)> = stmt.query_map(param_refs.as_slice(), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?.filter_map(|r| r.ok()).collect();
 
-        // Source breakdown (top N)
-        let source_sql = format!(
-            "SELECT f.path, COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} GROUP BY f.path ORDER BY COUNT(*) DESC LIMIT ?",
-            where_clause
-        );
-        let source_params = {
-            let mut p = self.build_params_from_query(query);
-            p.push(Box::new(top_n as i64));
-            p
-        };
-        let source_refs: Vec<&dyn rusqlite::types::ToSql> = source_params.iter().map(|b| b.as_ref()).collect();
-        let source_breakdown: Vec<SourceCount> = {
-            let mut stmt = self.conn.prepare(&source_sql)?;
-            let rows: Vec<SourceCount> = stmt.query_map(source_refs.as_slice(), |row| {
-                Ok(SourceCount {
-                    source: row.get(0)?,
-                    count: row.get(1)?,
-                })
-            })?.filter_map(|r| r.ok()).collect();
-            rows
-        };
+        // Apply memory filters
+        let filtered: Vec<&(String, String)> = rows.iter()
+            .filter(|(raw, _)| Self::matches_memory_filters(raw, query))
+            .collect();
 
-        // Time range
-        let time_sql = format!(
-            "SELECT MIN(timestamp), MAX(timestamp) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {}",
-            where_clause
-        );
-        let time_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
-        let time_range: Option<(String, String)> = self.conn
-            .query_row(&time_sql, time_refs.as_slice(), |row| {
-                Ok((row.get::<_, Option<String>>(0)?, row.get::<_, Option<String>>(1)?))
+        let total_count = filtered.len() as u64;
+
+        // Aggregate all stats in a single pass
+        let mut level_counts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+        let mut timestamps: Vec<chrono::DateTime<chrono::Utc>> = Vec::new();
+        let mut source_counts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+        let mut message_counts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+
+        for (raw, source) in &filtered {
+            // Level
+            let level = scanner::extract_level(raw).unwrap_or_else(|| "UNKNOWN".to_string());
+            *level_counts.entry(level).or_insert(0) += 1;
+
+            // Timestamp
+            if let Some(ts) = scanner::extract_timestamp(raw) {
+                timestamps.push(ts);
+            }
+
+            // Source
+            *source_counts.entry(source.clone()).or_insert(0) += 1;
+
+            // Message prefix
+            let msg = scanner::extract_message(raw);
+            if !msg.is_empty() {
+                let prefix: String = msg.chars().take(100).collect();
+                *message_counts.entry(prefix).or_insert(0) += 1;
+            }
+        }
+
+        // Build results
+        let mut level_distribution: Vec<LevelCount> = level_counts.into_iter()
+            .map(|(level, count)| LevelCount { level, count })
+            .collect();
+        level_distribution.sort_by(|a, b| b.count.cmp(&a.count));
+
+        let mut source_breakdown: Vec<SourceCount> = source_counts.into_iter()
+            .map(|(source, count)| SourceCount { source, count })
+            .collect();
+        source_breakdown.sort_by(|a, b| b.count.cmp(&a.count));
+        source_breakdown.truncate(top_n);
+
+        let time_range = if timestamps.is_empty() {
+            None
+        } else {
+            timestamps.iter().min().map(|min| {
+                let max = timestamps.iter().max().unwrap();
+                (min.to_rfc3339(), max.to_rfc3339())
             })
-            .ok()
-            .and_then(|(min, max)| min.zip(max));
-
-        // Top frequent messages (deduplicated by first 100 chars)
-        let msg_sql = format!(
-            "SELECT SUBSTR(message,1,100) as msg_prefix, COUNT(*) FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} AND LENGTH(message)>0 GROUP BY msg_prefix ORDER BY COUNT(*) DESC LIMIT ?",
-            where_clause
-        );
-        let mut msg_params = self.build_params_from_query(query);
-        msg_params.push(Box::new(top_n as i64));
-        let msg_refs: Vec<&dyn rusqlite::types::ToSql> = msg_params.iter().map(|b| b.as_ref()).collect();
-        let top_messages: Vec<MessageCount> = {
-            let mut stmt = self.conn.prepare(&msg_sql)?;
-            let rows: Vec<MessageCount> = stmt.query_map(msg_refs.as_slice(), |row| {
-                Ok(MessageCount {
-                    message_prefix: row.get(0)?,
-                    count: row.get(1)?,
-                })
-            })?.filter_map(|r| r.ok()).collect();
-            rows
         };
+
+        let mut top_messages: Vec<MessageCount> = message_counts.into_iter()
+            .map(|(message_prefix, count)| MessageCount { message_prefix, count })
+            .collect();
+        top_messages.sort_by(|a, b| b.count.cmp(&a.count));
+        top_messages.truncate(top_n);
 
         let elapsed = start.elapsed();
 
@@ -567,34 +616,18 @@ mod tests {
     use super::*;
     use crate::core::entry::LogEntry;
     use crate::core::index::IndexManager;
-    use chrono::Utc;
 
     // ── helper ──
     fn setup_db() -> IndexManager {
         let idx = IndexManager::open_in_memory().unwrap();
-        // Create a test file
         let file_id = idx.get_or_create_file("/logs/test/console.log").unwrap();
-        let now = Utc::now();
-        // Insert test log entries
         let entries = vec![
             LogEntry{id:None, file_id, line_number:1, byte_offset:0,
-                timestamp:Some(now - chrono::Duration::try_seconds(60).unwrap()),
-                level:Some("ERROR".into()), thread:Some("main".into()),
-                logger:Some("com.example.App".into()),
-                message:"NullPointerException: something broke".into(),
-                fields_json:None, raw:"2024-01-15 10:00:00 ERROR [main] com.example.App - NullPointerException: something broke".into()},
+                raw:"2024-01-15 10:00:00 ERROR [main] com.example.App - NullPointerException: something broke".into()},
             LogEntry{id:None, file_id, line_number:2, byte_offset:100,
-                timestamp:Some(now - chrono::Duration::try_seconds(30).unwrap()),
-                level:Some("WARN".into()), thread:Some("worker-1".into()),
-                logger:Some("com.example.Service".into()),
-                message:"connection timeout after 5s".into(),
-                fields_json:None, raw:"2024-01-15 10:00:30 WARN [worker-1] com.example.Service - connection timeout after 5s".into()},
+                raw:"2024-01-15 10:00:30 WARN [worker-1] com.example.Service - connection timeout after 5s".into()},
             LogEntry{id:None, file_id, line_number:3, byte_offset:200,
-                timestamp:Some(now),
-                level:Some("INFO".into()), thread:Some("main".into()),
-                logger:Some("com.example.Health".into()),
-                message:"health check ok".into(),
-                fields_json:None, raw:"2024-01-15 10:01:00 INFO [main] com.example.Health - health check ok".into()},
+                raw:"2024-01-15 10:01:00 INFO [main] com.example.Health - health check ok".into()},
         ];
         idx.insert_entries(&entries).unwrap();
         idx
@@ -736,12 +769,12 @@ mod tests {
         let engine = SearchEngine::new(db.conn());
         let mut q = make_query();
         q.fts_query = Some("timeout".into());
-        q.levels = vec!["ERROR".into()];
         q.exclude = vec!["health".into()];
         let (sql, p) = engine.build_where_clause(&q);
-        assert!(sql.contains("MATCH"));
-        assert!(sql.contains("level IN"));
-        assert!(sql.contains("NOT LIKE"));
+        // Should contain MATCH but NOT level IN (level is now memory filter)
+        assert!(sql.contains("MATCH"), "should contain FTS MATCH");
+        assert!(!sql.contains("level IN"), "level should not be in SQL WHERE");
+        assert!(sql.contains("NOT LIKE"), "exclude should be in SQL WHERE");
         assert!(!p.is_empty());
     }
 
@@ -755,6 +788,7 @@ mod tests {
         let rs = engine.search(&q).unwrap();
         assert_eq!(rs.total_count, 1);
         assert_eq!(rs.results.len(), 1);
+        // Level is extracted from raw by scanner
         assert_eq!(rs.results[0].level.as_deref(), Some("WARN"));
     }
     #[test]
@@ -835,7 +869,7 @@ mod tests {
         let mut q = make_query();
         q.exclude = vec!["NullPointer".into()];
         let rs = engine.search_regex(r".", &q).unwrap();
-        // All 3 entries exist, one excluded
+        // 3 entries exist, 1 excluded by exclude filter
         assert_eq!(rs.total_count, 2);
     }
 
@@ -890,13 +924,11 @@ mod tests {
     fn test_get_context_around_line() {
         let db = setup_db();
         let engine = SearchEngine::new(db.conn());
-        // First, find a result to get its file_id
         let rs = engine.search(&make_query()).unwrap();
         let file_id = rs.results[0].file_id;
-        let line = rs.results[1].line_number; // line 2 (WARN)
+        let line = rs.results[1].line_number;
         let ctx = engine.get_context(file_id, line, 1).unwrap();
         assert!(ctx.len() >= 2);
-        // Should include lines 1 and 3 around line 2
         let line_nums: Vec<u64> = ctx.iter().map(|r| r.line_number).collect();
         assert!(line_nums.contains(&1));
         assert!(line_nums.contains(&3));
@@ -908,7 +940,6 @@ mod tests {
         let rs = engine.search(&make_query()).unwrap();
         let file_id = rs.results[0].file_id;
         let ctx = engine.get_context(file_id, 1, 5).unwrap();
-        // Line 1 should have no "before" context — min_line clamped to 1
         assert!(ctx.len() >= 1);
     }
 

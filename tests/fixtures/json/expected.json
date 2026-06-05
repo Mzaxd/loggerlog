@@ -66,11 +66,11 @@
       "entries": [
         {"line_number": 1, "level": "INFO", "message": "", "thread": "", "logger": ""},
         {"line_number": 2, "level": null, "message": "Level is null - should be parsed as no level"},
-        {"line_number": 3, "level": "INFO", "message": "正常的中文日志消息，包含标点符号：，。！？；：「」\""},
+        {"line_number": 3, "level": "INFO", "message": "正常的中文日志消息，包含标点符号：，。！？；：「」"},
         {"line_number": 4, "level": "INFO", "message": "Message with emoji: 🎉 🚀 ✅ ❌ ⚠️ 🔥 💾"},
         {"line_number": 5, "level": "INFO", "thread": "main", "message": "Special characters: <>&\"'`"},
-        {"line_number": 8, "level": "INFO", "thread": "main", "has_extra_fields": true, "extra_field_keys": ["tags"]},
-        {"line_number": 9, "level": "INFO", "thread": "main", "has_extra_fields": true, "extra_field_keys": ["metadata"]},
+        {"line_number": 8, "level": "DEBUG", "thread": "main", "message": "Array value in extra field", "has_extra_fields": true, "extra_field_keys": ["tags"]},
+        {"line_number": 9, "level": "INFO", "thread": "main", "message": "Nested object in extra fields", "has_extra_fields": true, "extra_field_keys": ["metadata"]},
         {"line_number": 10, "level": "INFO", "message": null, "note": "Message field is missing - should default to empty string"},
         {"line_number": 11, "message": "Numeric level value - level is 42 (int, not string) - as_str() should return None"}
       ]

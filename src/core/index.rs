@@ -50,44 +50,29 @@ impl IndexManager {
                 file_id     INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
                 line_number INTEGER NOT NULL,
                 byte_offset INTEGER NOT NULL,
-                timestamp   TEXT,
-                level       TEXT,
-                thread      TEXT,
-                logger      TEXT,
-                message     TEXT NOT NULL DEFAULT '',
-                fields_json TEXT,
                 raw         TEXT NOT NULL DEFAULT ''
             );
 
             CREATE INDEX IF NOT EXISTS idx_entries_file ON log_entries(file_id);
-            CREATE INDEX IF NOT EXISTS idx_entries_timestamp ON log_entries(timestamp);
-            CREATE INDEX IF NOT EXISTS idx_entries_level ON log_entries(level);
-            CREATE INDEX IF NOT EXISTS idx_entries_thread ON log_entries(thread);
 
             CREATE VIRTUAL TABLE IF NOT EXISTS log_entries_fts USING fts5(
-                message,
                 raw,
-                fields_json,
                 content='log_entries',
                 content_rowid='id',
                 tokenize='unicode61 remove_diacritics 1'
             );
 
             CREATE TRIGGER IF NOT EXISTS log_entries_ai AFTER INSERT ON log_entries BEGIN
-                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
-                    VALUES (new.id, new.message, new.raw, new.fields_json);
+                INSERT INTO log_entries_fts(rowid, raw) VALUES (new.id, new.raw);
             END;
 
             CREATE TRIGGER IF NOT EXISTS log_entries_ad AFTER DELETE ON log_entries BEGIN
-                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
-                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, raw) VALUES('delete', old.id, old.raw);
             END;
 
             CREATE TRIGGER IF NOT EXISTS log_entries_au AFTER UPDATE ON log_entries BEGIN
-                INSERT INTO log_entries_fts(log_entries_fts, rowid, message, raw, fields_json)
-                    VALUES('delete', old.id, old.message, old.raw, old.fields_json);
-                INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
-                    VALUES (new.id, new.message, new.raw, new.fields_json);
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, raw) VALUES('delete', old.id, old.raw);
+                INSERT INTO log_entries_fts(rowid, raw) VALUES (new.id, new.raw);
             END;"
         )?;
 
@@ -122,6 +107,14 @@ impl IndexManager {
             self.migrate_v3()?;
             self.conn.execute(
                 "INSERT INTO schema_version (version) VALUES (3)",
+                [],
+            )?;
+        }
+
+        if version < 4 {
+            self.migrate_v4()?;
+            self.conn.execute(
+                "INSERT INTO schema_version (version) VALUES (4)",
                 [],
             )?;
         }
@@ -161,8 +154,23 @@ impl IndexManager {
         Ok(())
     }
 
-    /// v3: Add fields_json to FTS5 index so JSON log extra fields are searchable
+    /// v3: Add fields_json to FTS5 index so JSON log extra fields are searchable.
+    /// Note: This migration is effectively superseded by v4. It only runs when
+    /// upgrading from schema v2 directly to v3 (skipping v4). Since v4 completely
+    /// rebuilds the FTS5 table, we guard against missing columns.
     fn migrate_v3(&self) -> Result<()> {
+        // Check if the old structured columns still exist (they won't after v4)
+        let has_message: bool = self.conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('log_entries') WHERE name = 'message'",
+            [],
+            |row| row.get::<_, i32>(0).map(|c| c > 0),
+        ).unwrap_or(false);
+
+        if !has_message {
+            // v4 already ran or schema was created fresh — skip v3 entirely
+            return Ok(());
+        }
+
         // 1. Drop old FTS5 table and triggers
         self.conn.execute_batch(
             "DROP TRIGGER IF EXISTS log_entries_ai;
@@ -212,6 +220,82 @@ impl IndexManager {
         Ok(())
     }
 
+    /// v4: Loki-style simplification — remove structured columns from log_entries,
+    /// simplify FTS5 to raw-only, triggers to raw-only.
+    fn migrate_v4(&self) -> Result<()> {
+        // 1. Drop old FTS5 table and triggers
+        self.conn.execute_batch(
+            "DROP TRIGGER IF EXISTS log_entries_ai;
+             DROP TRIGGER IF EXISTS log_entries_ad;
+             DROP TRIGGER IF EXISTS log_entries_au;
+             DROP TABLE IF EXISTS log_entries_fts;"
+        )?;
+
+        // 2. Drop old indexes (they reference columns that will be removed)
+        self.conn.execute_batch(
+            "DROP INDEX IF EXISTS idx_entries_timestamp;
+             DROP INDEX IF EXISTS idx_entries_level;
+             DROP INDEX IF EXISTS idx_entries_thread;"
+        )?;
+
+        // 3. Rebuild log_entries table without structured columns
+        //    SQLite doesn't support DROP COLUMN before 3.35.0, so recreate table
+        self.conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS log_entries_new (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_id     INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+                line_number INTEGER NOT NULL,
+                byte_offset INTEGER NOT NULL,
+                raw         TEXT NOT NULL DEFAULT ''
+            );
+            INSERT INTO log_entries_new (id, file_id, line_number, byte_offset, raw)
+                SELECT id, file_id, line_number, byte_offset, raw FROM log_entries;
+            DROP TABLE log_entries;
+            ALTER TABLE log_entries_new RENAME TO log_entries;"
+        )?;
+
+        // 4. Recreate file index
+        self.conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_entries_file ON log_entries(file_id);"
+        )?;
+
+        // 5. Create simplified FTS5 table (raw only)
+        self.conn.execute_batch(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS log_entries_fts USING fts5(
+                raw,
+                content='log_entries',
+                content_rowid='id',
+                tokenize='unicode61 remove_diacritics 1'
+            );"
+        )?;
+
+        // 6. Rebuild FTS index from existing data
+        self.conn.execute_batch(
+            "INSERT INTO log_entries_fts(rowid, raw)
+             SELECT id, raw FROM log_entries;"
+        )?;
+
+        // 7. Recreate triggers (raw only)
+        self.conn.execute_batch(
+            "CREATE TRIGGER IF NOT EXISTS log_entries_ai AFTER INSERT ON log_entries BEGIN
+                INSERT INTO log_entries_fts(rowid, raw) VALUES (new.id, new.raw);
+             END;
+
+             CREATE TRIGGER IF NOT EXISTS log_entries_ad AFTER DELETE ON log_entries BEGIN
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, raw)
+                    VALUES('delete', old.id, old.raw);
+             END;
+
+             CREATE TRIGGER IF NOT EXISTS log_entries_au AFTER UPDATE ON log_entries BEGIN
+                INSERT INTO log_entries_fts(log_entries_fts, rowid, raw)
+                    VALUES('delete', old.id, old.raw);
+                INSERT INTO log_entries_fts(rowid, raw) VALUES (new.id, new.raw);
+             END;"
+        )?;
+
+        Ok(())
+    }
+
     /// Get or create a file record
     pub fn get_or_create_file(&self, path: &str) -> Result<i64> {
         let existing: Option<i64> = self.conn.query_row(
@@ -240,7 +324,7 @@ impl IndexManager {
         Ok(())
     }
 
-    /// Insert log entries in batch
+    /// Insert log entries in batch (raw-only, no parsing)
     pub fn insert_entries(&self, entries: &[crate::core::entry::LogEntry]) -> Result<usize> {
         if entries.is_empty() {
             return Ok(0);
@@ -251,22 +335,15 @@ impl IndexManager {
 
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO log_entries (file_id, line_number, byte_offset, timestamp, level, thread, logger, message, fields_json, raw)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO log_entries (file_id, line_number, byte_offset, raw)
+                 VALUES (?, ?, ?, ?)"
             )?;
 
             for entry in entries {
-                let ts = entry.timestamp.map(|t| t.to_rfc3339());
                 stmt.execute(params![
                     entry.file_id,
                     entry.line_number as i64,
                     entry.byte_offset as i64,
-                    ts,
-                    &entry.level,
-                    &entry.thread,
-                    &entry.logger,
-                    &entry.message,
-                    &entry.fields_json,
                     &entry.raw,
                 ])?;
                 count += 1;
@@ -578,7 +655,6 @@ mod tests {
     use super::*;
     use crate::core::config::Project;
     use crate::core::entry::LogEntry;
-    use chrono::Utc;
 
     fn setup() -> IndexManager {
         IndexManager::open_in_memory().unwrap()
@@ -644,9 +720,7 @@ mod tests {
         let fid = idx.get_or_create_file("/test.log").unwrap();
         let entries = vec![LogEntry {
             id: None, file_id: fid, line_number: 1, byte_offset: 0,
-            timestamp: Some(Utc::now()), level: Some("INFO".into()),
-            thread: None, logger: None, message: "hello".into(),
-            fields_json: None, raw: "INFO hello".into(),
+            raw: "2024-01-15 10:23:45 INFO hello world".into(),
         }];
         let inserted = idx.insert_entries(&entries).unwrap();
         assert_eq!(inserted, 1);
@@ -661,13 +735,9 @@ mod tests {
     fn test_insert_multiple_entries() {
         let idx = setup();
         let fid = idx.get_or_create_file("/m.log").unwrap();
-        let now = Utc::now();
         let entries: Vec<LogEntry> = (1..=3).map(|i| LogEntry {
             id: None, file_id: fid, line_number: i, byte_offset: (i * 100) as u64,
-            timestamp: Some(now), level: Some("INFO".into()),
-            thread: None, logger: None,
-            message: format!("msg{}", i), fields_json: None,
-            raw: format!("raw{}", i),
+            raw: format!("2024-01-15 10:23:4{} INFO message {}", i, i),
         }).collect();
         assert_eq!(idx.insert_entries(&entries).unwrap(), 3);
         assert_eq!(idx.total_entries().unwrap(), 3);
@@ -678,9 +748,7 @@ mod tests {
         let fid = idx.get_or_create_file("/c.log").unwrap();
         idx.insert_entries(&[LogEntry {
             id: None, file_id: fid, line_number: 1, byte_offset: 0,
-            timestamp: Some(Utc::now()), level: Some("INFO".into()),
-            thread: None, logger: None, message: "x".into(),
-            fields_json: None, raw: "x".into(),
+            raw: "2024-01-15 INFO test".into(),
         }]).unwrap();
         assert_eq!(idx.total_entries().unwrap(), 1);
         idx.clear_file_entries(fid).unwrap();
@@ -692,11 +760,9 @@ mod tests {
         let fid = idx.get_or_create_file("/fts.log").unwrap();
         idx.insert_entries(&[LogEntry {
             id: None, file_id: fid, line_number: 1, byte_offset: 0,
-            timestamp: Some(Utc::now()), level: Some("INFO".into()),
-            thread: None, logger: None, message: "unique_keyword_fts_test".into(),
-            fields_json: None, raw: "unique_keyword_fts_test raw".into(),
+            raw: "unique_keyword_fts_test in raw text".into(),
         }]).unwrap();
-        // FTS search should find it (via engine)
+        // FTS search should find it via raw
         let engine = crate::core::engine::SearchEngine::new(idx.conn());
         let mut q = crate::core::entry::SearchQuery::default();
         q.limit = 10;
@@ -794,9 +860,7 @@ mod tests {
         let fid = idx.get_or_create_file("/to-clear.log").unwrap();
         idx.insert_entries(&[LogEntry {
             id: None, file_id: fid, line_number: 1, byte_offset: 0,
-            timestamp: Some(Utc::now()), level: Some("INFO".into()),
-            thread: None, logger: None, message: "msg".into(),
-            fields_json: None, raw: "msg".into(),
+            raw: "2024-01-15 INFO msg".into(),
         }]).unwrap();
         idx.clear_all().unwrap();
         assert_eq!(idx.total_entries().unwrap(), 0);

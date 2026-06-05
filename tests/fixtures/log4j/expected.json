@@ -82,7 +82,7 @@
       "entries": [
         {"line_number": 3, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "Message with special characters: !@#$%^&*()_+-=[]{}|;':\",./<>?"},
         {"line_number": 4, "level": "DEBUG", "thread": "main", "logger": "com.example.Special", "message": "JSON payload in message: {\"userId\":42,\"action\":\"login\",\"ip\":\"192.168.1.1\"}"},
-        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "Message with escaped characters: \\n \\t \\r \" \\\\"},
+        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "Message with escaped characters: \\n \\t \\r \\\" \\\\"},
         {"line_number": 6, "level": "WARN", "thread": "main", "logger": "com.example.Special", "message": "XML in message: <user><id>42</id><name>John</name></user>"},
         {"line_number": 7, "level": "INFO", "thread": "main", "logger": "com.example.Special", "message": "SQL query executed: SELECT * FROM users WHERE name LIKE '%test%' AND status = 'active'"},
         {"line_number": 8, "level": "ERROR", "thread": "main", "logger": "com.example.Special", "message": "URL in message: https://api.example.com/v2/users?page=1&size=50#section"},

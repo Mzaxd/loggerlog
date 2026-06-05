@@ -1,6 +1,6 @@
 {"timestamp":"2024-05-01T10:00:00Z","level":"INFO","message":"","thread":"","logger":""}
 {"timestamp":"2024-05-01T10:00:01Z","level":null,"message":"Level is null - should be parsed as no level"}
-{"timestamp":"2024-05-01T10:00:02Z","level":"INFO","message":"正常的中文日志消息，包含标点符号：，。！？；：「」""}
+{"timestamp":"2024-05-01T10:00:02Z","level":"INFO","message":"正常的中文日志消息，包含标点符号：，。！？；：「」"}
 {"timestamp":"2024-05-01T10:00:03Z","level":"INFO","message":"Message with emoji: 🎉 🚀 ✅ ❌ ⚠️ 🔥 💾"}
 {"timestamp":"2024-05-01T10:00:04Z","level":"INFO","message":"Special characters: <>&\"'`","thread":"main"}
 {"timestamp":"2024-05-01T10:00:05Z","level":"INFO","message":"Very long message: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."}
@@ -8,4 +8,4 @@
 {"timestamp":"2024-05-01T10:00:07Z","level":"DEBUG","message":"Array value in extra field","tags":["important","production","api"],"thread":"main"}
 {"timestamp":"2024-05-01T10:00:08Z","level":"INFO","message":"Nested object in extra fields","metadata":{"region":"us-east-1","az":"us-east-1a","instanceType":"t3.medium"},"thread":"main"}
 {"timestamp":"2024-05-01T10:00:09Z","level":"INFO"}
-{"timestamp":"2024-05-01T10:00:10Z","level":42,"message":"Numeric level value - should this be handled?"}
+{"timestamp":"2024-05-01T10:00:10Z","level":42,"message":"Numeric level value - level is 42 (int, not string) - as_str() should return None"}

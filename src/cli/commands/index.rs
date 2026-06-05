@@ -2,8 +2,9 @@ use crate::cli::IndexAction;
 use crate::core::config;
 use crate::core::discovery::FileDiscovery;
 use crate::core::encoding;
+use crate::core::entry::LogEntry;
 use crate::core::index::IndexManager;
-use crate::core::parser::LogLineParser;
+use crate::core::scanner;
 use anyhow::Result;
 
 pub fn run(action: IndexAction, config_path: Option<&str>) -> Result<()> {
@@ -80,14 +81,14 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
             let (entries, format_str) = if job.is_compressed {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-                let parser = LogLineParser::auto_detect(&lines);
-                (parser.parse_lines(&content, job.file_id, 0), parser.format.to_string())
+                let fmt = scanner::detect_format_hint(&lines);
+                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
             } else {
                 let existing = existing_files.iter().find(|f| f.path == job.file_path);
                 let current_byte_offset = existing.map(|f| f.byte_offset).unwrap_or(0);
                 let content = encoding::read_file_to_utf8(&job.file_path, None);
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-                let parser = LogLineParser::auto_detect(&lines);
+                let fmt = scanner::detect_format_hint(&lines);
                 let start_byte = current_byte_offset as u64;
                 let mut byte_count = 0u64;
                 let new_lines: Vec<String> = lines
@@ -97,7 +98,7 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
                         byte_count > start_byte
                     })
                     .collect();
-                (parser.parse_lines(&new_lines.join("\n"), job.file_id, start_byte), parser.format.to_string())
+                (create_raw_entries(&new_lines.join("\n"), job.file_id, start_byte), fmt.to_string())
             };
 
             Ok(JobResult {
@@ -326,13 +327,13 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
             let (entries, format_str) = if job.is_compressed {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-                let parser = LogLineParser::auto_detect(&lines);
-                (parser.parse_lines(&content, job.file_id, 0), parser.format.to_string())
+                let fmt = scanner::detect_format_hint(&lines);
+                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
             } else if job.needs_full_read {
                 let content = encoding::read_file_to_utf8(&job.file_path, None);
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-                let parser = LogLineParser::auto_detect(&lines);
-                (parser.parse_lines(&content, job.file_id, 0), parser.format.to_string())
+                let fmt = scanner::detect_format_hint(&lines);
+                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
             } else {
                 let content = match encoding::read_file_from_offset(&job.file_path, job.stored_offset as u64) {
                     Ok(c) => c,
@@ -348,8 +349,8 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
                     });
                 }
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
-                let parser = LogLineParser::auto_detect(&lines);
-                (parser.parse_lines(&content, job.file_id, job.stored_offset as u64), parser.format.to_string())
+                let fmt = scanner::detect_format_hint(&lines);
+                (create_raw_entries(&content, job.file_id, job.stored_offset as u64), fmt.to_string())
             };
 
             Ok(IncrResult {
@@ -401,4 +402,24 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
     }
 
     Ok(result)
+}
+
+/// Create raw-only LogEntry objects from file content, no parsing.
+fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64) -> Vec<LogEntry> {
+    let mut entries = Vec::new();
+    let mut byte_offset = start_byte_offset;
+    let mut line_number = 0u64;
+    for line in content.lines() {
+        line_number += 1;
+        let line_bytes = line.len() as u64 + 1; // +1 for newline
+        entries.push(LogEntry {
+            id: None,
+            file_id,
+            line_number,
+            byte_offset,
+            raw: line.to_string(),
+        });
+        byte_offset += line_bytes;
+    }
+    entries
 }

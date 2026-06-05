@@ -660,7 +660,7 @@ mod tests {
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
                 level: Some("ERROR".to_string()), thread: None, logger: None,
                 message: "NullPointerException: something went wrong".to_string(),
-                fields_json: None,
+
                 raw: "Exception NullPointerException: something went wrong".to_string(),
             },
             SearchResult {
@@ -669,7 +669,7 @@ mod tests {
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
                 level: Some("ERROR".to_string()), thread: None, logger: None,
                 message: format!("{}at com.example.App.run(App.java:42)", tab),
-                fields_json: None,
+
                 raw: format!("{}at com.example.App.run(App.java:42)", tab),
             },
             SearchResult {
@@ -678,7 +678,7 @@ mod tests {
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
                 level: Some("ERROR".to_string()), thread: None, logger: None,
                 message: format!("{}at com.example.App.main(App.java:10)", tab),
-                fields_json: None,
+
                 raw: format!("{}at com.example.App.main(App.java:10)", tab),
             },
         ];
@@ -697,7 +697,7 @@ mod tests {
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
                 level: Some("INFO".to_string()), thread: None, logger: None,
                 message: "normal log".to_string(),
-                fields_json: None,
+
                 raw: "2024-01-01 INFO normal log".to_string(),
             },
             SearchResult {
@@ -706,7 +706,7 @@ mod tests {
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
                 level: Some("INFO".to_string()), thread: None, logger: None,
                 message: "another normal log".to_string(),
-                fields_json: None,
+
                 raw: "2024-01-01 INFO another normal log".to_string(),
             },
         ];
@@ -742,10 +742,10 @@ mod tests {
         let results = vec![
             SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
                 timestamp:None, level:Some("INFO".into()), thread:None, logger:None,
-                message:"msg one".into(), fields_json:None, raw:"raw1".into() },
+                message:"msg one".into(), raw:"raw1".into() },
             SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
                 timestamp:None, level:Some("WARN".into()), thread:None, logger:None,
-                message:"msg two".into(), fields_json:None, raw:"raw2".into() },
+                message:"msg two".into(), raw:"raw2".into() },
         ];
         let deduped = deduplicate_results(results);
         assert_eq!(deduped.len(), 2);
@@ -756,13 +756,13 @@ mod tests {
         let results = vec![
             SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
                 timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), fields_json:None, raw:"raw1".into() },
+                message:"same error".into(), raw:"raw1".into() },
             SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
                 timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), fields_json:None, raw:"raw2".into() },
+                message:"same error".into(), raw:"raw2".into() },
             SearchResult { file_id:0, id:3, source:"a".into(), line_number:3, byte_offset:20,
                 timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), fields_json:None, raw:"raw3".into() },
+                message:"same error".into(), raw:"raw3".into() },
         ];
         let deduped = deduplicate_results(results);
         assert_eq!(deduped.len(), 1);
@@ -774,10 +774,10 @@ mod tests {
         let results = vec![
             SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
                 timestamp:None, level:Some("INFO".into()), thread:None, logger:None,
-                message:"same msg".into(), fields_json:None, raw:"raw1".into() },
+                message:"same msg".into(), raw:"raw1".into() },
             SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
                 timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same msg".into(), fields_json:None, raw:"raw2".into() },
+                message:"same msg".into(), raw:"raw2".into() },
         ];
         let deduped = deduplicate_results(results);
         // Different levels → not duplicates
