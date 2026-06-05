@@ -34,7 +34,7 @@ loggerlog search [OPTIONS] [QUERY]
 
 | 选项 | 说明 |
 |---|---|
-| `-l, --level` | 按级别过滤，可多次指定 (如 `-l ERROR -l WARN`) |
+| `-l, --level` | 按级别过滤，支持逗号分隔或多次指定 (`-l ERROR,WARN` 或 `-l ERROR -l WARN`) |
 | `-s, --source` | 按源文件名 glob 过滤 |
 | `--project` | 按项目名过滤 |
 | `--module` | 按模块名 (子目录) 过滤 |
@@ -134,7 +134,7 @@ loggerlog project remove <NAME>                  # 移除项目
 用户说 "帮我看看最近有什么错误" 时，**不要**直接 `search "error"` 灌 100 条日志。先看全局：
 
 ```bash
-loggerlog search --summary -t 30m
+loggerlog search "after=30m-ago" --summary
 ```
 
 这会输出级别分布、Top 高频错误消息、来源统计。如果发现主要集中在 `auth` 模块，再精确查询：
@@ -234,7 +234,7 @@ loggerlog tail /var/log/app.log --filter "ERROR"
 
 ## 重要注意事项
 
-- **搜索前自动同步**: 每次 `search` 会自动执行 `index update` (增量)，确保索引不落后于文件。可以用 `--no-skip` 跳过以加速。
+- **搜索前自动同步**: 每次 `search` 会自动执行 `index update` (增量)，确保索引不落后于文件。可以用 `--no-sync` 跳过以加速。
 - **异常堆栈折叠**: 连续堆栈行会被自动折叠成 `[... N stack lines]`，节省上下文。
 - **编码自动检测**: 无需手动指定 UTF-8/GBK，chardetng 自动识别。
 - **日志轮转**: 自动识别 `.1`、`.gz` 等轮转文件，不会重复索引。
