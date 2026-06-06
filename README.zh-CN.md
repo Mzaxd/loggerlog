@@ -128,10 +128,17 @@ loggerlog tail /var/log/app.log --filter "ERROR"
 loggerlog tail --level WARN --filter "timeout"
 ```
 
+| 选项 | 说明 |
+|------|------|
+| `-l, --level` | 按级别过滤 |
+| `-f, --filter` | FTS 关键字过滤 |
+| `-o, --output` | 输出格式（默认 raw） |
+
 ### `config` — 管理配置
 
 ```bash
 loggerlog config show
+loggerlog config edit
 loggerlog config add-dir /path/to/logs
 loggerlog config remove-dir /path/to/logs
 ```
@@ -149,6 +156,7 @@ loggerlog index stats      # 查看统计
 
 ```bash
 loggerlog project add myapp "/path/to/project/logs"
+loggerlog project add myapp "/path/to/project/logs" --recursive
 loggerlog project list
 loggerlog project remove myapp
 ```
@@ -194,7 +202,7 @@ Showing 2 of 2 results (1.2ms)
 ### 场景 1：探索性查询 → 先看摘要
 
 ```bash
-loggerlog search --summary -t 30m
+loggerlog search "after=30m-ago" --summary
 ```
 
 输出级别分布、Top 高频错误消息、来源统计，防止低质量查询灌满上下文。
@@ -222,7 +230,7 @@ loggerlog search "level=ERROR,WARN after=1h-ago" --summary
 ```bash
 cargo build            # 构建（debug）
 cargo build --release  # 构建（release）
-cargo test             # 运行 158 个测试
+cargo test             # 运行 267 个测试
 cargo run -- --help    # 查看 CLI 帮助
 ```
 
@@ -230,11 +238,16 @@ cargo run -- --help    # 查看 CLI 帮助
 
 | 模块 | 测试数 | 覆盖内容 |
 |------|--------|----------|
-| `engine.rs` | 37 | parse_duration/relative_time/take_value, parse_query_string 全部过滤器组合, build_where_clause, search/search_regex 含 FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
-| `index.rs` | 21 | 建表/迁移, files CRUD, entries CRUD, FTS 触发器同步, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
+| `engine.rs` | 60 | parse_duration/relative_time/take_value, parse_query_string 全部过滤器组合, build_where_clause, search/search_regex 含 FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
+| `index.rs` | 31 | 建表/迁移, files CRUD, entries CRUD, FTS 触发器同步, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
 | `scanner.rs` | 47 | extract_level/timestamp/message/thread/logger 全格式 + JSON, detect_format_hint, 性能测试 |
-| `search.rs` | 30 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line 多语言, extract_exception_class, fold_stack_traces, shorten_path, truncate |
-| `discovery.rs` | 1 | 文件名分析 |
+| `config.rs` | 26 | 配置加载, TOML 解析, 路径规范化, 默认设置 |
+| `discovery.rs` | 19 | FileDiscovery, 轮转检测, 文件名分析 |
+| `encoding.rs` | 13 | chardetng 编码检测, gzip 解压, UTF-8/GBK/Shift-JIS |
+| `cli/commands/search.rs` | 24 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line 多语言, extract_exception_class, fold_stack_traces, shorten_path, truncate |
+| `entry.rs` | 5 | 数据模型构建, SearchQuery 构建 |
+| `cli/commands/index.rs` | 4 | index 子命令参数解析 |
+| `watcher.rs` | 2 | 文件监控初始化 |
 
 ## 架构
 
@@ -273,6 +286,9 @@ src/
 | 正则 | regex | 1 |
 | 编码 | chardetng + encoding_rs | — |
 | 文件监控 | notify + debouncer-mini | — |
+| 文件遍历 | walkdir | — |
+| 压缩 | flate2 | — |
+| 系统目录 | dirs | — |
 
 ## License
 

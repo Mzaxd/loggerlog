@@ -128,10 +128,17 @@ loggerlog tail /var/log/app.log --filter "ERROR"
 loggerlog tail --level WARN --filter "timeout"
 ```
 
+| Option | Description |
+|--------|-------------|
+| `-l, --level` | Filter by log level |
+| `-f, --filter` | FTS keyword filter |
+| `-o, --output` | Output format (default raw) |
+
 ### `config` — Manage Configuration
 
 ```bash
 loggerlog config show
+loggerlog config edit
 loggerlog config add-dir /path/to/logs
 loggerlog config remove-dir /path/to/logs
 ```
@@ -149,6 +156,7 @@ loggerlog index stats      # View statistics
 
 ```bash
 loggerlog project add myapp "/path/to/project/logs"
+loggerlog project add myapp "/path/to/project/logs" --recursive
 loggerlog project list
 loggerlog project remove myapp
 ```
@@ -194,7 +202,7 @@ Showing 2 of 2 results (1.2ms)
 ### Scenario 1: Exploratory Query → Summary First
 
 ```bash
-loggerlog search --summary -t 30m
+loggerlog search "after=30m-ago" --summary
 ```
 
 Outputs level distribution, top frequent error messages, and source statistics — prevents flooding context with low-quality queries.
@@ -222,7 +230,7 @@ loggerlog search "level=ERROR,WARN after=1h-ago" --summary
 ```bash
 cargo build            # Debug build
 cargo build --release  # Release build
-cargo test             # Run 158 tests
+cargo test             # Run 267 tests
 cargo run -- --help    # View CLI help
 ```
 
@@ -230,11 +238,16 @@ cargo run -- --help    # View CLI help
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
-| `engine.rs` | 37 | parse_duration/relative_time/take_value, parse_query_string all filter combos, build_where_clause, search/search_regex with FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
-| `index.rs` | 21 | Table creation/migration, files CRUD, entries CRUD, FTS trigger sync, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
+| `engine.rs` | 60 | parse_duration/relative_time/take_value, parse_query_string all filter combos, build_where_clause, search/search_regex with FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
+| `index.rs` | 31 | Table creation/migration, files CRUD, entries CRUD, FTS trigger sync, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
 | `scanner.rs` | 47 | extract_level/timestamp/message/thread/logger all formats + JSON, detect_format_hint, benchmarks |
-| `search.rs` | 30 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line multi-language, extract_exception_class, fold_stack_traces, shorten_path, truncate |
-| `discovery.rs` | 1 | Filename analysis |
+| `config.rs` | 26 | Config loading, TOML parsing, path normalization, default settings |
+| `discovery.rs` | 19 | FileDiscovery, rotation detection, filename analysis |
+| `encoding.rs` | 13 | chardetng encoding detection, gzip decompression, UTF-8/GBK/Shift-JIS |
+| `cli/commands/search.rs` | 24 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line multi-language, extract_exception_class, fold_stack_traces, shorten_path, truncate |
+| `entry.rs` | 5 | Data model construction, SearchQuery building |
+| `cli/commands/index.rs` | 4 | Index subcommand argument parsing |
+| `watcher.rs` | 2 | File watcher initialization |
 
 ## Architecture
 
@@ -273,6 +286,9 @@ src/
 | Regex | regex | 1 |
 | Encoding | chardetng + encoding_rs | — |
 | File watching | notify + debouncer-mini | — |
+| File traversal | walkdir | — |
+| Compression | flate2 | — |
+| System dirs | dirs | — |
 
 ## License
 
