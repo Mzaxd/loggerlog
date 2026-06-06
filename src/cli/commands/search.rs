@@ -528,10 +528,9 @@ fn fold_stack_traces(results: &mut Vec<crate::core::entry::SearchResult>) {
 
             // Append fold summary to parent's message
             if stack_count > 0 {
-                let summary = if last_exception.is_some() {
-                    format!("\n  [{} 条堆栈已折叠]", stack_count)
-                } else {
-                    format!("\n  [{} 条堆栈已折叠]", stack_count)
+                let summary = match &last_exception {
+                    Some(cls) => format!("\n  [{}: {} 条堆栈已折叠]", cls, stack_count),
+                    None => format!("\n  [{} 条堆栈已折叠]", stack_count),
                 };
                 results[parent_idx].message.push_str(&summary);
                 results[parent_idx].raw.push_str(&summary);

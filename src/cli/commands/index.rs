@@ -28,7 +28,13 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
     let discovered = FileDiscovery::scan_directories(&cfg.sources.directories);
     println!("Discovered {} log files", discovered.len());
 
-    let max_file_size = config::parse_size(&cfg.general.max_file_size);
+    let max_file_size = match config::parse_size(&cfg.general.max_file_size) {
+        Some(size) => size,
+        None => {
+            eprintln!("Warning: invalid max_file_size '{}', using 2GB default", cfg.general.max_file_size);
+            2u64 * 1024 * 1024 * 1024
+        }
+    };
 
     // ── Phase 1 (serial): filter + get file_ids ──
     struct Job {
@@ -255,7 +261,13 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
 
     let idx = IndexManager::open(&cfg.general.database_path)?;
     let discovered = FileDiscovery::scan_directories(&cfg.sources.directories);
-    let max_file_size = config::parse_size(&cfg.general.max_file_size);
+    let max_file_size = match config::parse_size(&cfg.general.max_file_size) {
+        Some(size) => size,
+        None => {
+            eprintln!("Warning: invalid max_file_size '{}', using 2GB default", cfg.general.max_file_size);
+            2u64 * 1024 * 1024 * 1024
+        }
+    };
 
     // ── Phase 1 (serial): collect work items ──
     struct IncrJob {

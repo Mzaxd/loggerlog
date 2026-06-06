@@ -59,7 +59,7 @@ loggerlog search "level=ERROR,WARN after=1h-ago"
 loggerlog search "error" -o compact
 
 # 摘要模式（先看全局）
-loggerlog search --summary -t 30m
+loggerlog search "after=30m-ago" --summary
 
 # JSON 输出（AI agent 消费）
 loggerlog search "error" -o json

@@ -146,10 +146,16 @@ impl FileDiscovery {
         (group_name, is_compressed, is_rotated)
     }
 
-    /// Simple glob matching
+    /// Simple glob matching for `*.ext` style patterns.
+    /// Only supports the `*` prefix wildcard (e.g. `*.gz`, `*.tmp`).
     fn matches_glob(text: &str, pattern: &str) -> bool {
-        let p = pattern.trim_start_matches('*').trim_start_matches('.');
-        text.contains(p)
+        if let Some(suffix) = pattern.strip_prefix("*.") {
+            text.ends_with(suffix)
+        } else if let Some(suffix) = pattern.strip_prefix('*') {
+            text.ends_with(suffix)
+        } else {
+            text == pattern
+        }
     }
 
     /// Group files by their logical source (rotation group)

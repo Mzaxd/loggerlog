@@ -202,21 +202,22 @@ pub fn remove_directory(config: &mut Config, path: &str) -> bool {
     config.sources.directories.len() != len_before
 }
 
-/// Parse a human-readable size string like "2GB" to bytes
-pub fn parse_size(size_str: &str) -> u64 {
+/// Parse a human-readable size string like "2GB" to bytes.
+/// Returns `None` if the input cannot be parsed or would overflow.
+pub fn parse_size(size_str: &str) -> Option<u64> {
     let s = size_str.trim().to_uppercase();
-    let (num_str, multiplier) = if s.ends_with("GB") {
-        (&s[..s.len() - 2], 1024u64 * 1024 * 1024)
-    } else if s.ends_with("MB") {
-        (&s[..s.len() - 2], 1024u64 * 1024)
-    } else if s.ends_with("KB") {
-        (&s[..s.len() - 2], 1024u64)
-    } else if s.ends_with("B") {
-        (&s[..s.len() - 1], 1)
+    let (num_str, multiplier) = if let Some(n) = s.strip_suffix("GB") {
+        (n, 1024u64 * 1024 * 1024)
+    } else if let Some(n) = s.strip_suffix("MB") {
+        (n, 1024u64 * 1024)
+    } else if let Some(n) = s.strip_suffix("KB") {
+        (n, 1024u64)
+    } else if let Some(n) = s.strip_suffix("B") {
+        (n, 1u64)
     } else {
-        (s.as_str(), 1)
+        (s.as_str(), 1u64)
     };
-    num_str.trim().parse::<u64>().unwrap_or(0) * multiplier
+    num_str.trim().parse::<u64>().ok()?.checked_mul(multiplier)
 }
 
 /// Add a project to the config
