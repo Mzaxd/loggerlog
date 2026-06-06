@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/Mzaxd/loggerlog/blob/main/README.md
+    about: Please check the README and documentation before opening an issue.
+  - name: 💬 Discussion
+    url: https://github.com/Mzaxd/loggerlog/discussions
+    about: Ask questions and discuss ideas in Discussions.

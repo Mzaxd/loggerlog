@@ -1,0 +1,6 @@
+name: maint-approval
+contactLinks:
+  - name: CI Status
+    url: https://github.com/Mzaxd/loggerlog/actions
+  - name: Contributing Guide
+    url: https://github.com/Mzaxd/loggerlog/blob/main/CONTRIBUTING.md

@@ -1,10 +1,38 @@
 # LoggerLog
 
+[![CI](https://github.com/Mzaxd/loggerlog/actions/workflows/ci.yml/badge.svg)](https://github.com/Mzaxd/loggerlog/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-stable-orange.svg)](https://www.rust-lang.org/)
+[![Skills.sh](https://skills.sh/api/badge?skill=Mzaxd/loggerlog)](https://www.skills.sh)
+
 A lightweight CLI log search tool. Powered by SQLite FTS5 local indexing with zero external dependencies and millisecond-level full-text search.
 
 Designed for AI agents (Claude Code, etc.) and daily development troubleshooting.
 
-[中文文档](README.zh-CN.md)
+[中文文档](README.zh-CN.md) | [Changelog](CHANGELOG.md) | [Contributing](CONTRIBUTING.md)
+
+## Installation
+
+### From Source
+
+```bash
+cargo install --git https://github.com/Mzaxd/loggerlog.git
+```
+
+### Build from Source
+
+```bash
+git clone https://github.com/Mzaxd/loggerlog.git
+cd loggerlog
+cargo build --release
+# Binary at target/release/loggerlog
+```
+
+### Install as AI Agent Skill
+
+```bash
+npx skills add Mzaxd/loggerlog
+```
 
 ## Features
 
@@ -44,8 +72,6 @@ Designed for AI agents (Claude Code, etc.) and daily development troubleshooting
 ## Quick Start
 
 ```bash
-cargo build --release
-
 # Add log directories
 loggerlog config add-dir /path/to/logs
 
@@ -292,4 +318,8 @@ src/
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.

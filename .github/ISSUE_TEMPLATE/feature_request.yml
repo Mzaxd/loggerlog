@@ -1,0 +1,23 @@
+---
+name: Feature Request
+about: Suggest a new feature or enhancement
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+assignees: []
+---
+
+## Feature Description
+
+A clear description of the feature you'd like.
+
+## Motivation
+
+Why would this feature be useful? What problem does it solve?
+
+## Proposed Solution
+
+Describe your preferred solution or API design.
+
+## Alternatives Considered
+
+Any alternative approaches you've thought about.

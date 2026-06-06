@@ -1,10 +1,38 @@
 # LoggerLog
 
+[![CI](https://github.com/Mzaxd/loggerlog/actions/workflows/ci.yml/badge.svg)](https://github.com/Mzaxd/loggerlog/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-stable-orange.svg)](https://www.rust-lang.org/)
+[![Skills.sh](https://skills.sh/api/badge?skill=Mzaxd/loggerlog)](https://www.skills.sh)
+
 轻量级 CLI 日志搜索工具。基于 SQLite FTS5 本地索引，零外部依赖，毫秒级全文搜索。
 
 专为 AI Agent（Claude Code 等）和日常开发排障场景设计。
 
-[English](README.md)
+[English](README.md) | [更新日志](CHANGELOG.md) | [贡献指南](CONTRIBUTING.md)
+
+## 安装
+
+### 从源码安装
+
+```bash
+cargo install --git https://github.com/Mzaxd/loggerlog.git
+```
+
+### 从源码构建
+
+```bash
+git clone https://github.com/Mzaxd/loggerlog.git
+cd loggerlog
+cargo build --release
+# 编译产物在 target/release/loggerlog
+```
+
+### 安装为 AI Agent 技能
+
+```bash
+npx skills add Mzaxd/loggerlog
+```
 
 ## 特性
 
@@ -44,8 +72,6 @@
 ## 快速开始
 
 ```bash
-cargo build --release
-
 # 添加日志目录
 loggerlog config add-dir /path/to/logs
 
@@ -292,4 +318,8 @@ src/
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+## 贡献
+
+欢迎贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
