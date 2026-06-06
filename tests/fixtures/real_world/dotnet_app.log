@@ -1,0 +1,26 @@
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: https://localhost:5001
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /app
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5000
+info: Program[0]
+      Configuring middleware...
+info: Program[0]
+      Database migration applied successfully
+warn: Program[0]
+      Rate limiting configured: 100 requests/minute
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint '/api/users'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET https://localhost:5001/api/users - 200 - 45.1234ms
+err: Program[0]
+      Failed to send notification email: SMTP timeout
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+fail: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production

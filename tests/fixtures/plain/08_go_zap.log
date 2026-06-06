@@ -1,0 +1,9 @@
+{"level":"info","ts":"2024-03-15T10:00:00.000Z","caller":"main.go:42","msg":"server started","port":8080}
+{"level":"error","ts":"2024-03-15T10:00:01.000Z","caller":"handler.go:15","msg":"request failed","error":"connection refused"}
+{"level":"warn","ts":"2024-03-15T10:00:02.000Z","caller":"middleware.go:88","msg":"slow request","duration":"2.5s"}
+{"level":"debug","ts":"2024-03-15T10:00:03.000Z","caller":"db.go:55","msg":"query executed","sql":"SELECT * FROM users"}
+{"level":"info","ts":"2024-03-15T10:00:04.000Z","caller":"main.go:120","msg":"shutdown initiated"}
+panic: runtime error: index out of range
+goroutine 1 [running]:
+main.main()
+	/main.go:25 +0x3a

@@ -1,0 +1,5 @@
+I, [2024-03-15T10:00:00.123456 #1234]  INFO -- : [abc123] Started GET "/users" for 127.0.0.1
+I, [2024-03-15T10:00:01.234567 #1234]  INFO -- : [abc123] Processing by UsersController#index as HTML
+W, [2024-03-15T10:00:02.345678 #1234]  WARN -- : [abc123] DEPRECATION WARNING: some_method is deprecated
+E, [2024-03-15T10:00:03.456789 #1234] ERROR -- : [abc123] ActiveRecord::RecordNotFound (Couldn't find User with 'id'=999)
+I, [2024-03-15T10:00:04.567890 #1234]  INFO -- : [abc123] Completed 200 OK in 45ms (Views: 30ms, ActiveRecord: 10ms)

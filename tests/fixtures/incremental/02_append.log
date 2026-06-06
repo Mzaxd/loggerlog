@@ -1,0 +1,5 @@
+2025-06-01 12:00:01,011 INFO  [http-nio-8080-exec-3] com.app.Controller - Handling request GET /api/reports
+2025-06-01 12:00:05,012 DEBUG [http-nio-8080-exec-3] com.app.Query - Executing report query: select * from daily_sales
+2025-06-01 12:00:08,013 ERROR [http-nio-8080-exec-3] com.app.Report - Report generation failed: OutOfMemoryError during aggregation
+2025-06-01 12:00:15,014 WARN  [main] com.app.Memory - Heap usage critical: 94% of 512MB allocated
+2025-06-01 12:00:30,015 INFO  [main] com.app.Recovery - Automatic restart triggered for report service

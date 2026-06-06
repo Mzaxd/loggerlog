@@ -49,23 +49,23 @@
       "format": "log4j",
       "total_lines": 13,
       "entries": [
-        {"line_number": 5, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Comma-separated milliseconds (log4j default)"},
-        {"line_number": 8, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Dot-separated milliseconds"},
-        {"line_number": 11, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "No milliseconds in timestamp"},
-        {"line_number": 14, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator with comma milliseconds"},
-        {"line_number": 17, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator with dot milliseconds"},
-        {"line_number": 20, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Slash date separator, no milliseconds"},
-        {"line_number": 23, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (comma ms)"},
-        {"line_number": 24, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (dot ms)"},
-        {"line_number": 25, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 without timezone (no ms)"},
-        {"line_number": 28, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 with timezone offset"},
-        {"line_number": 29, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "ISO 8601 with Z timezone"},
-        {"line_number": 32, "level": "INFO", "thread": "main", "has_timestamp": true, "message": "Epoch milliseconds timestamp"}
+        {"line_number": 5, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Comma-separated milliseconds (log4j default)"},
+        {"line_number": 8, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Dot-separated milliseconds"},
+        {"line_number": 11, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "No milliseconds in timestamp"},
+        {"line_number": 14, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Slash date separator with comma milliseconds"},
+        {"line_number": 17, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Slash date separator with dot milliseconds"},
+        {"line_number": 20, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Slash date separator, no milliseconds"},
+        {"line_number": 23, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "ISO 8601 without timezone (comma ms)"},
+        {"line_number": 24, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "ISO 8601 without timezone (dot ms)"},
+        {"line_number": 25, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "ISO 8601 without timezone (no ms)"},
+        {"line_number": 28, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "ISO 8601 with timezone offset"},
+        {"line_number": 29, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "ISO 8601 with Z timezone"},
+        {"line_number": 32, "level": "INFO", "thread": "main", "logger": "com.example.DateFormats", "has_timestamp": true, "message": "Epoch milliseconds timestamp"}
       ]
     },
     "05_multiline_stacktrace.log": {
       "format": "log4j",
-      "total_lines": 28,
+      "total_lines": 30,
       "note": "Stack trace lines (no date+level prefix) should be continuation of previous entries. Only lines with log4j header are parseable LogEntry rows.",
       "entries": [
         {"line_number": 3, "level": "INFO", "thread": "main", "message": "Starting multi-line message test"},

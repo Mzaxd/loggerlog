@@ -23,28 +23,197 @@
     },
     "03_nginx.log": {
       "format": "plain",
-      "note": "Nginx access logs. Plain parser treats as unstructured fallback. Each line is a message.",
-      "total_lines": 10
+      "note": "Nginx access logs. No level keywords, no scanner-parseable timestamps (month-name format). Scanner extracts misleading thread from [timestamp] brackets and spurious logger from HTTP methods. All unstructured from a meaningful extraction standpoint.",
+      "total_lines": 10,
+      "all_unstructured": true
     },
     "04_apache.log": {
       "format": "plain",
-      "note": "Apache HTTPD combined access log + error log. Plain parser handles as unstructured fallback.",
-      "total_lines": 10
+      "note": "Apache HTTPD combined access log + error log. Access log lines have no extractable levels. Error log lines have lowercase level keywords (notice, error, warn) which the scanner's case-sensitive regex does not match. Scanner extracts thread from [Mon ...] brackets and spurious logger from module names before separator.",
+      "total_lines": 10,
+      "all_unstructured": true
     },
     "05_syslog.log": {
       "format": "plain",
-      "note": "Syslog RFC 3164 and RFC 5424 formats. Plain parser handles as unstructured fallback.",
-      "total_lines": 9
+      "note": "Syslog RFC 3164 and RFC 5424 formats. No extractable level keywords (syslog uses facility/severity codes, not text levels). RFC 3164 lines have no scanner-parseable timestamps. RFC 5424 lines have extractable ISO8601 timestamps. Scanner extracts PID brackets as thread for RFC 3164 and structured-data brackets for RFC 5424. Logger extraction picks up spurious words from bracket content area.",
+      "total_lines": 9,
+      "all_unstructured": true
     },
     "06_docker.log": {
       "format": "plain",
-      "note": "Docker/container logs. Some lines contain their own JSON wrapper.",
-      "total_lines": 13
+      "note": "Docker/container logs. Docker JSON wrapper lines have extractable levels (INFO/WARN/ERROR) from log content and timestamps from JSON 'time' field. containerd lines with explicit level prefixes (INFO:/ERROR:/WARN:) have extractable levels. Plain container log lines have extractable levels and timestamps. containerd lines without level prefixes (e.g. 'Starting application v1.2.3') have timestamp but no level.",
+      "total_lines": 13,
+      "entries": [
+        {
+          "line_number": 5,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "{\"log\":\"2024-01-15T10:00:00.000Z INFO  Starting nginx: nginx version: nginx/1.24.0\\n\",\"stream\":\"stdout\",\"time\":\"2024-01-15T10:00:00.000000001Z\"}",
+          "has_timestamp": true,
+          "note": "Docker JSON wrapper: level from 'log' field content, timestamp from JSON 'time' field"
+        },
+        {
+          "line_number": 6,
+          "level": "WARN",
+          "thread": null,
+          "logger": null,
+          "message": "{\"log\":\"2024-01-15T10:00:01.000Z WARN  Using default configuration: /etc/nginx/nginx.conf\\n\",\"stream\":\"stdout\",\"time\":\"2024-01-15T10:00:01.000000002Z\"}",
+          "has_timestamp": true,
+          "note": "Docker JSON wrapper: WARN from log content, timestamp from JSON 'time' field"
+        },
+        {
+          "line_number": 7,
+          "level": "ERROR",
+          "thread": null,
+          "logger": null,
+          "message": "{\"log\":\"2024-01-15T10:00:02.000Z ERROR connect() failed (111: Connection refused) while connecting to upstream\\n\",\"stream\":\"stderr\",\"time\":\"2024-01-15T10:00:02.000000003Z\"}",
+          "has_timestamp": true,
+          "note": "Docker JSON wrapper: ERROR from log content, timestamp from JSON 'time' field"
+        },
+        {
+          "line_number": 10,
+          "level": null,
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15T10:00:00.000000000Z stdout F Starting application v1.2.3",
+          "has_timestamp": true,
+          "note": "containerd line without level prefix: has timestamp but no level ('F' is not a level keyword)"
+        },
+        {
+          "line_number": 11,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15T10:00:01.000000000Z stdout F INFO: Connected to database at db-service:5432",
+          "has_timestamp": true,
+          "note": "containerd line with INFO: prefix"
+        },
+        {
+          "line_number": 12,
+          "level": "ERROR",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15T10:00:02.000000000Z stderr F ERROR: Health check failed: /healthz returned 503",
+          "has_timestamp": true,
+          "note": "containerd line with ERROR: prefix"
+        },
+        {
+          "line_number": 13,
+          "level": "WARN",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15T10:00:03.000000000Z stdout F WARN: Memory usage at 85%, considering scale-up",
+          "has_timestamp": true,
+          "note": "containerd line with WARN: prefix"
+        },
+        {
+          "line_number": 16,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15 10:00:00 INFO  my-app/1.0.0 Starting server on 0.0.0.0:3000",
+          "has_timestamp": true,
+          "note": "Plain container log with timestamp + level"
+        },
+        {
+          "line_number": 17,
+          "level": "DEBUG",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15 10:00:01 DEBUG my-app/1.0.0 Environment: production",
+          "has_timestamp": true,
+          "note": "Plain container log with DEBUG level"
+        },
+        {
+          "line_number": 18,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15 10:00:02 INFO  my-app/1.0.0 Connected to PostgreSQL at 10.0.0.5:5432",
+          "has_timestamp": true,
+          "note": "Plain container log with INFO level"
+        },
+        {
+          "line_number": 19,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "2024-01-15 10:00:03 INFO  my-app/1.0.0 Connected to Redis at 10.0.0.6:6379",
+          "has_timestamp": true,
+          "note": "Plain container log with INFO level"
+        },
+        {
+          "line_number": 20,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "listening on 0.0.0.0:3000 (PID: 1)",
+          "has_timestamp": true,
+          "note": "Plain container log: scanner finds ' - ' separator in message body, extracting partial message. Level INFO from content."
+        }
+      ]
     },
     "07_custom_app.log": {
       "format": "plain",
-      "note": "Custom application log formats (Python, Go, Node.js).",
-      "total_lines": 15
+      "note": "Custom application log formats. Python logging lines have extractable levels (INFO/DEBUG/WARNING->WARN/ERROR) and timestamps. Dotted logger names (urllib3.connectionpool, myapp.module, myapp.auth) are extracted as loggers. Go standard library lines have timestamps but no level keywords. Node.js lines have timestamps but lowercase bracket levels ([info]/[debug]/[warn]/[error]) that the scanner's case-sensitive regex does not match.",
+      "total_lines": 15,
+      "entries": [
+        {
+          "line_number": 5,
+          "level": "INFO",
+          "thread": null,
+          "logger": null,
+          "message": "root - INFO - Starting application",
+          "has_timestamp": true,
+          "note": "Python logging: scanner finds ' - ' separator at '00,000 - root', extracting partial message. Level INFO."
+        },
+        {
+          "line_number": 6,
+          "level": "DEBUG",
+          "thread": null,
+          "logger": "myapp.module",
+          "message": "myapp.module - DEBUG - Processing request #42",
+          "has_timestamp": true,
+          "note": "Python logging: dotted logger name extracted. Message includes logger+level prefix."
+        },
+        {
+          "line_number": 7,
+          "level": "WARN",
+          "thread": null,
+          "logger": "myapp.module",
+          "message": "myapp.module - WARNING - Deprecated config key found: 'old_timeout', use 'request_timeout'",
+          "has_timestamp": true,
+          "note": "Python logging: WARNING normalized to WARN by scanner."
+        },
+        {
+          "line_number": 8,
+          "level": "ERROR",
+          "thread": null,
+          "logger": "myapp.module",
+          "message": "myapp.module - ERROR - Division by zero in calculation: total / count (count=0)",
+          "has_timestamp": true,
+          "note": "Python logging: ERROR level, dotted logger."
+        },
+        {
+          "line_number": 9,
+          "level": "DEBUG",
+          "thread": null,
+          "logger": "urllib3.connectionpool",
+          "message": "urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.example.com:443",
+          "has_timestamp": true,
+          "note": "Python logging: urllib3 dotted logger name extracted."
+        },
+        {
+          "line_number": 10,
+          "level": "INFO",
+          "thread": null,
+          "logger": "myapp.auth",
+          "message": "myapp.auth - INFO - User 'jdoe' authenticated with role 'admin'",
+          "has_timestamp": true,
+          "note": "Python logging: myapp.auth dotted logger name extracted."
+        }
+      ]
     }
   }
 }

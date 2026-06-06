@@ -50,3 +50,39 @@ impl FileWatcher {
         Ok((Self { _debouncer: debouncer }, rx))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_watch_creates_channel() {
+        let temp_dir = std::env::temp_dir().join("loggerlog_test_watch_creates_channel");
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let (watcher, rx) = FileWatcher::watch(&[temp_dir.clone()], 100).unwrap();
+
+        // Verify the receiver is usable (try_recv should return Err since no events yet)
+        assert!(rx.try_recv().is_err());
+
+        // Drop watcher to stop the background thread
+        drop(watcher);
+
+        // Clean up
+        std::fs::remove_dir_all(&temp_dir).ok();
+    }
+
+    #[test]
+    fn test_watch_nonexistent_directory() {
+        let nonexistent = std::env::temp_dir().join("loggerlog_test_watch_nonexistent_abc123");
+
+        // Should succeed — the code skips non-existent dirs with just a warning
+        let (watcher, rx) = FileWatcher::watch(&[nonexistent], 100).unwrap();
+
+        // Verify the receiver was created
+        assert!(rx.try_recv().is_err());
+
+        // Drop watcher to stop the background thread
+        drop(watcher);
+    }
+}

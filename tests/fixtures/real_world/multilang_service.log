@@ -1,0 +1,17 @@
+# Mixed language service log - tests format auto-detection with mixed content
+{"level":"info","message":"service started","timestamp":"2024-06-01T08:00:00Z","service":"payment-gateway"}
+{"level":"error","message":"payment failed","timestamp":"2024-06-01T08:00:01Z","error_code":"INSUFFICIENT_FUNDS","order_id":"ord-98765"}
+2024-06-01 08:00:02,000 ERROR [main] com.example.Fallback - Fallback logger: payment service unavailable
+{"level":"warn","message":"retry attempt","timestamp":"2024-06-01T08:00:03Z","attempt":2,"max_attempts":3}
+2024-06-01 08:00:03,500 INFO  [http-nio-8080-exec-1] com.example.App - Log injection test: this is a real log line
+{"level":"info","message":"connection restored","timestamp":"2024-06-01T08:00:04Z","service":"payment-gateway"}
+2024-06-01 08:00:05,000 DEBUG [scheduler-1] com.example.Scheduler - Scheduled task completed in 150ms
+{"level":"error","message":"timeout","timestamp":"2024-06-01T08:00:06Z","upstream":"inventory-service","timeout_ms":5000}
+Plain text log: request from 192.168.1.100 to /api/products, status 200, duration 23ms
+{"level":"info","message":"request processed","timestamp":"2024-06-01T08:00:07Z","path":"/api/products","method":"GET"}
+2024-06-01 08:00:08,000 WARN  [pool-1-thread-1] com.example.Monitor - Memory usage at 78%, threshold is 80%
+{"level":"debug","message":"cache stats","timestamp":"2024-06-01T08:00:09Z","hits":1234,"misses":567,"hit_rate":"68.5%"}
+2024-06-01 08:00:10,000 INFO  [main] com.example.App - Application shutdown complete
+2024-06-01 08:00:10,500 ERROR [main] com.example.App - INJECTED 2024-06-01 08:00:10,500 FATAL [attacker] com.example.Exploit - fake critical alert
+2024-06-01 08:00:11,000 INFO  [http-nio-8080-exec-2] com.example.App - User input contained: {"level":"error","message":"injected payload","timestamp":"2024-06-01T08:00:11Z"}
+Plain text: system health check passed, uptime 72h, active connections 42

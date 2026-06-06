@@ -1,0 +1,16 @@
+# exclude_multi.log — test fixture for exclude filter (exclude=keyword)
+# 12 log lines: 4 health, 4 metrics, 4 business
+# Used to test single and multi-keyword exclusion
+
+2025-05-01 08:00:01,123 INFO  [health-monitor] com.app.health - Health check: database connection OK
+2025-05-01 08:00:02,234 INFO  [health-monitor] com.app.health - Health check: redis cache OK
+2025-05-01 08:00:03,345 INFO  [health-monitor] com.app.health - Health check: message queue OK
+2025-05-01 08:00:04,456 INFO  [health-monitor] com.app.health - Health check: all services healthy
+2025-05-01 08:01:01,123 INFO  [metrics-collector] com.app.metrics - Metrics: request count 1420, avg latency 45ms
+2025-05-01 08:01:02,234 INFO  [metrics-collector] com.app.metrics - Metrics: error rate 0.02%, p99 latency 120ms
+2025-05-01 08:01:03,345 INFO  [metrics-collector] com.app.metrics - Metrics: active connections 89, queue depth 3
+2025-05-01 08:01:04,456 INFO  [metrics-collector] com.app.metrics - Metrics: cpu usage 34%, memory 2.1GB
+2025-05-01 08:05:01,123 INFO  [worker-1] com.app.business - Processing order #ORD-20250501-0001 for user USER-8834
+2025-05-01 08:05:02,234 INFO  [worker-2] com.app.business - Payment confirmed for order #ORD-20250501-0001
+2025-05-01 08:05:03,345 INFO  [worker-1] com.app.business - Shipping label generated for order #ORD-20250501-0001
+2025-05-01 08:05:04,456 INFO  [worker-2] com.app.business - Notification sent to user USER-8834 for order #ORD-20250501-0001

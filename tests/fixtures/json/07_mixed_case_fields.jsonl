@@ -1,0 +1,5 @@
+{"Level":"ERROR","Message":"connection failed","Timestamp":"2024-03-15T10:00:00Z"}
+{"level":"error","message":"timeout exceeded","timestamp":"2024-03-15T10:00:01Z"}
+{"LEVEL":"WARN","MESSAGE":"rate limit approaching","TIMESTAMP":"2024-03-15T10:00:02Z"}
+{"Level":"info","message":"request processed","Timestamp":"2024-03-15T10:00:03Z"}
+{"LEVEL":"INFO","Message":"health check passed","timestamp":"2024-03-15T10:00:04Z"}

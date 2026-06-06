@@ -1,0 +1,10 @@
+2025-06-01 10:00:01,001 INFO  [main] com.app.Server - Application started on port 8080
+2025-06-01 10:00:02,002 DEBUG [main] com.app.Config - Loading configuration from /etc/app/config.yml
+2025-06-01 10:00:03,003 INFO  [main] com.app.Database - Database connection established
+2025-06-01 10:00:05,004 WARN  [scheduler] com.app.Cache - Cache hit ratio below threshold: 0.45
+2025-06-01 10:00:10,005 INFO  [http-nio-8080-exec-1] com.app.Controller - Handling request GET /api/users
+2025-06-01 10:00:12,006 ERROR [http-nio-8080-exec-1] com.app.Service - Failed to fetch user profile: timeout after 5000ms
+2025-06-01 10:00:15,007 DEBUG [http-nio-8080-exec-2] com.app.Controller - Handling request POST /api/orders
+2025-06-01 10:00:18,008 INFO  [http-nio-8080-exec-2] com.app.Service - Order created successfully: id=10234
+2025-06-01 10:00:25,009 WARN  [scheduler] com.app.Metrics - Response time spike detected: p99=2300ms
+2025-06-01 10:00:30,010 INFO  [main] com.app.Heartbeat - Health check passed: all services healthy

@@ -1,0 +1,21 @@
+# Thread filter test fixture
+# 13 log4j-format lines from 4 distinct threads:
+#   - 5 lines from "http-nio-8080-exec-1" (HTTP request handling)
+#   - 3 lines from "scheduler-1" (scheduled tasks)
+#   - 3 lines from "main" (startup)
+#   - 2 lines from "pool-2-thread-3" (async processing)
+# Used to verify thread=X filter matching in FTS5 queries.
+
+2025-03-15 08:00:01,123 [main] INFO  c.a.Application - Starting application context
+2025-03-15 08:00:02,456 [main] INFO  c.a.c.DataSource - Initialized primary datasource with 10 connections
+2025-03-15 08:00:03,789 [main] INFO  c.a.s.AnnotationConfigServletWebServerApplicationContext - Refreshing application context
+2025-03-15 08:01:10,001 [http-nio-8080-exec-1] INFO  c.a.w.DispatcherServlet - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-03-15 08:01:10,150 [http-nio-8080-exec-1] INFO  c.a.w.DispatcherServlet - Completed initialization in 149 ms
+2025-03-15 08:01:15,234 [http-nio-8080-exec-1] DEBUG c.a.w.servlet.DispatcherServlet - GET "/api/users", parameters={}
+2025-03-15 08:01:15,500 [http-nio-8080-exec-1] INFO  c.a.w.servlet.DispatcherServlet - Completed 200 OK
+2025-03-15 08:01:16,789 [http-nio-8080-exec-1] WARN  c.a.w.servlet.DispatcherServlet - Slow request detected: 289ms on POST "/api/orders"
+2025-03-15 08:05:00,000 [scheduler-1] INFO  c.a.scheduling.ScheduledTask - Running scheduled cleanup job
+2025-03-15 08:05:00,345 [scheduler-1] DEBUG c.a.scheduling.ScheduledTask - Removed 42 expired session records
+2025-03-15 08:05:00,567 [scheduler-1] INFO  c.a.scheduling.ScheduledTask - Cleanup job completed in 567ms
+2025-03-15 08:10:22,100 [pool-2-thread-3] INFO  c.a.a.AsyncService - Processing async email notification batch
+2025-03-15 08:10:22,800 [pool-2-thread-3] ERROR c.a.a.AsyncService - Failed to send email to user@example.com: SMTP timeout

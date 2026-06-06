@@ -1,0 +1,21 @@
+# Test fixture: time_range.log
+# Purpose: Validate after/before time-range filter predicates in FTS5 search.
+# Format: Log4j (standard pattern: YYYY-MM-DD HH:mm:ss,SSS [thread] LEVEL logger - message)
+# Contains 15 lines across 3 days (2024-01-01, 2024-01-02, 2024-01-03), 5 lines per day.
+# Each day has timestamps at 08:00, 10:00, 12:00, 14:00, 16:00.
+
+2024-01-01 08:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Application started on 2024-01-01
+2024-01-01 10:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Processing batch job morning
+2024-01-01 12:00:00,000 [worker-1] WARN  com.app.service.TimeRangeTest - High memory usage detected at noon
+2024-01-01 14:00:00,000 [worker-2] INFO  com.app.service.TimeRangeTest - Afternoon health check passed
+2024-01-01 16:00:00,000 [main] INFO  com.app.service.TimeRangeTest - End of day processing complete
+2024-01-02 08:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Application started on 2024-01-02
+2024-01-02 10:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Processing batch job morning
+2024-01-02 12:00:00,000 [worker-1] ERROR com.app.service.TimeRangeTest - Database connection timeout at noon
+2024-01-02 14:00:00,000 [worker-2] WARN  com.app.service.TimeRangeTest - Retry attempt for failed transaction
+2024-01-02 16:00:00,000 [main] INFO  com.app.service.TimeRangeTest - End of day processing complete
+2024-01-03 08:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Application started on 2024-01-03
+2024-01-03 10:00:00,000 [main] INFO  com.app.service.TimeRangeTest - Processing batch job morning
+2024-01-03 12:00:00,000 [worker-1] ERROR com.app.service.TimeRangeTest - Disk space critical at noon
+2024-01-03 14:00:00,000 [worker-2] WARN  com.app.service.TimeRangeTest - Cache eviction triggered
+2024-01-03 16:00:00,000 [main] INFO  com.app.service.TimeRangeTest - End of day processing complete

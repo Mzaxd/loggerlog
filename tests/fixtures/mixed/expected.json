@@ -5,15 +5,122 @@
     "01_log4j_and_plain.log": {
       "format": "log4j",
       "note": "Primarily log4j format with plain text banners mixed in. Auto-detect should still identify as log4j because >60% of lines match the log4j pattern.",
-      "total_lines": 24,
-      "log4j_entries_count": 10,
-      "plain_lines_count": 14
+      "total_lines": 36,
+      "log4j_entries_count": 9,
+      "plain_lines_count": 27,
+      "entries": [
+        {
+          "line_number": 5,
+          "level": "INFO",
+          "thread": "main",
+          "logger": "com.example.App",
+          "message": "=== Application Started ==="
+        },
+        {
+          "line_number": 13,
+          "level": "DEBUG",
+          "thread": "main",
+          "logger": "com.example.App",
+          "message": "OS: Linux 5.15.0, Arch: amd64, CPUs: 8"
+        },
+        {
+          "line_number": 14,
+          "level": "INFO",
+          "thread": "main",
+          "logger": "com.example.App",
+          "message": "PID: 12345, Written to /var/run/myapp.pid"
+        },
+        {
+          "line_number": 15,
+          "level": "WARN",
+          "thread": "main",
+          "logger": "com.example.App",
+          "message": "Environment variable DEPLOY_KEY not set, using default"
+        },
+        {
+          "line_number": 19,
+          "level": "INFO",
+          "thread": "http-nio-8080-exec-1",
+          "logger": "com.example.api.RequestLogger",
+          "message": "--> GET /api/status from 10.0.1.5"
+        },
+        {
+          "line_number": 20,
+          "level": "INFO",
+          "thread": "http-nio-8080-exec-1",
+          "logger": "com.example.api.RequestLogger",
+          "message": "<-- 200 OK (1ms)"
+        },
+        {
+          "line_number": 21,
+          "level": "ERROR",
+          "thread": "http-nio-8080-exec-2",
+          "logger": "com.example.service.DataService",
+          "message": "Query failed: timeout after 30s"
+        },
+        {
+          "line_number": 28,
+          "level": "INFO",
+          "thread": "scheduling-1",
+          "logger": "com.example.jobs.HourlyReport",
+          "message": "Hourly report generated: 1423 records"
+        },
+        {
+          "line_number": 29,
+          "level": "INFO",
+          "thread": "scheduling-1",
+          "logger": "com.example.jobs.HourlyReport",
+          "message": "Report emailed to admin@example.com"
+        }
+      ]
     },
     "02_json_and_text.log": {
       "format": "json",
       "note": "Mix of JSON structured logs and plain text banners/stack traces. Auto-detect should identify as JSON.",
-      "json_entries_count": 7,
-      "plain_lines_count": 12
+      "json_entries_count": 8,
+      "plain_lines_count": 25,
+      "entries": [
+        {
+          "line_number": 10,
+          "level": "INFO",
+          "message": "Service bootstrap initiated"
+        },
+        {
+          "line_number": 11,
+          "level": "DEBUG",
+          "message": "Loading config from /etc/service/config.yaml"
+        },
+        {
+          "line_number": 12,
+          "level": "INFO",
+          "message": "Database connection established: postgres@10.0.0.5:5432/serviceDB"
+        },
+        {
+          "line_number": 18,
+          "level": "INFO",
+          "message": "Cache warmup complete: 5000 entries"
+        },
+        {
+          "line_number": 19,
+          "level": "INFO",
+          "message": "HTTP server listening on 0.0.0.0:3000"
+        },
+        {
+          "line_number": 25,
+          "level": "INFO",
+          "message": "GET /health - 200 OK"
+        },
+        {
+          "line_number": 26,
+          "level": "ERROR",
+          "message": "Unhandled exception in GET /api/data"
+        },
+        {
+          "line_number": 33,
+          "level": "WARN",
+          "message": "Slow request detected"
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,10 @@
+2025-06-06 08:01:12.345 [main] INFO  com.app.server.HttpListener - Server started on port 8080
+2025-06-06 08:02:34.567 [main] INFO  com.app.server.HttpListener - Accepting connections
+2025-06-06 08:05:11.890 [pool-1-thread-1] INFO  com.app.handler.RequestHandler - Processing GET /api/users from 192.168.1.10
+2025-06-06 08:05:12.123 [pool-1-thread-1] INFO  com.app.handler.RequestHandler - Completed GET /api/users in 233ms, status 200
+2025-06-06 08:10:45.678 [pool-1-thread-2] INFO  com.app.handler.RequestHandler - Processing POST /api/login from 192.168.1.22
+2025-06-06 08:10:46.001 [pool-1-thread-2] INFO  com.app.handler.RequestHandler - Completed POST /api/login in 323ms, status 200
+2025-06-06 08:15:00.111 [scheduler-1] INFO  com.app.task.HealthCheck - Running scheduled health check
+2025-06-06 08:15:01.456 [scheduler-1] INFO  com.app.task.HealthCheck - Health check passed, all services OK
+2025-06-06 08:20:33.789 [main] INFO  com.app.server.HttpListener - Graceful shutdown initiated
+2025-06-06 08:20:34.012 [main] INFO  com.app.server.HttpListener - Server shutdown complete

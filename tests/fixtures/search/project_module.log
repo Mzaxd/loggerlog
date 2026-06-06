@@ -1,0 +1,15 @@
+# Test fixture for project/module search filter tests.
+# Simulates log lines from two modules under a project:
+#   /proj/auth/  -> module=auth  (lines 1-5)
+#   /proj/api/   -> module=api   (lines 6-10)
+# Log4j format, timestamps around 2025-03-15.
+2025-03-15 08:01:12,345 [auth-service-1] INFO  com.proj.auth.LoginHandler - User login attempt for user_id=1024
+2025-03-15 08:02:45,678 [auth-service-2] DEBUG com.proj.auth.TokenValidator - JWT token validated successfully for session abc123
+2025-03-15 08:05:33,901 [auth-service-1] WARN  com.proj.auth.PasswordChecker - Weak password detected for user_id=2048
+2025-03-15 08:10:11,112 [auth-service-3] ERROR com.proj.auth.OAuthProvider - OAuth callback failed: invalid_state_parameter
+2025-03-15 08:15:22,445 [auth-service-2] INFO  com.proj.auth.SessionManager - Session expired and cleaned up for user_id=3072
+2025-03-15 09:01:00,100 [api-gateway-1] INFO  com.proj.api.RequestRouter - Incoming GET /api/v2/users from 10.0.1.5
+2025-03-15 09:02:30,200 [api-gateway-1] DEBUG com.proj.api.RateLimiter - Rate limit check passed for client_id=client-abc
+2025-03-15 09:05:15,300 [api-gateway-2] ERROR com.proj.api.ResponseHandler - Failed to serialize response: JsonProcessingException
+2025-03-15 09:08:44,400 [api-gateway-1] WARN  com.proj.api.CircuitBreaker - Circuit half-open: retrying downstream service /payments
+2025-03-15 09:12:00,500 [api-gateway-3] INFO  com.proj.api.RequestRouter - Incoming POST /api/v2/orders from 10.0.2.8

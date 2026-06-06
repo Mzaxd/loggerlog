@@ -1,0 +1,10 @@
+2025-06-05 14:01:22.111 [main] WARN  com.app.server.HttpListener - Connection pool nearing capacity: 48/50
+2025-06-05 14:02:33.222 [pool-1-thread-3] WARN  com.app.handler.RequestHandler - Slow query detected: SELECT * FROM orders took 2340ms
+2025-06-05 14:05:44.333 [pool-1-thread-4] ERROR com.app.handler.RequestHandler - NullPointerException at com.app.service.OrderService.process(OrderService.java:87)
+2025-06-05 14:05:44.334 [pool-1-thread-4] ERROR com.app.handler.RequestHandler - java.lang.NullPointerException: Cannot invoke "String.length()" because "orderId" is null
+2025-06-05 14:05:44.335 [pool-1-thread-4] ERROR com.app.handler.RequestHandler - 	at com.app.service.OrderService.process(OrderService.java:87)
+2025-06-05 14:10:55.445 [scheduler-2] WARN  com.app.task.CacheCleaner - Cache eviction rate high: 1200 entries/min
+2025-06-05 14:15:11.556 [main] ERROR com.app.server.HttpListener - Failed to bind SSL context: keystore not found
+2025-06-05 14:20:22.667 [pool-1-thread-5] WARN  com.app.handler.RequestHandler - Response size exceeds 10MB threshold for GET /api/reports
+2025-06-05 14:25:33.778 [scheduler-1] ERROR com.app.task.DataSync - Sync failed after 3 retries: Connection refused to downstream service
+2025-06-05 14:30:44.889 [main] WARN  com.app.server.HttpListener - Disk usage at 92%, consider rotating logs

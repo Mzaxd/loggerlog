@@ -1,0 +1,19 @@
+{"level":"info","ts":"2024-06-01T08:00:00.000Z","caller":"main.go:42","msg":"starting server","addr":":8080","version":"1.2.3"}
+{"level":"info","ts":"2024-06-01T08:00:00.100Z","caller":"server.go:88","msg":"listening on","addr":":8080"}
+{"level":"debug","ts":"2024-06-01T08:00:01.200Z","caller":"middleware.go:45","msg":"request received","method":"GET","path":"/api/health","remote":"10.0.0.1:54321"}
+{"level":"info","ts":"2024-06-01T08:00:01.250Z","caller":"handler.go:32","msg":"health check ok","status":200,"latency_ms":1.2}
+{"level":"warn","ts":"2024-06-01T08:00:02.000Z","caller":"middleware.go:67","msg":"slow request","method":"POST","path":"/api/orders","duration_ms":2500}
+{"level":"error","ts":"2024-06-01T08:00:03.000Z","caller":"handler.go:55","msg":"database error","error":"connection refused","db_host":"db-primary:5432"}
+{"level":"info","ts":"2024-06-01T08:00:03.100Z","caller":"handler.go:56","msg":"retrying database connection","attempt":2,"max_retries":3}
+{"level":"info","ts":"2024-06-01T08:00:03.500Z","caller":"handler.go:55","msg":"database reconnected","db_host":"db-primary:5432"}
+{"level":"debug","ts":"2024-06-01T08:00:04.000Z","caller":"service.go:120","msg":"creating order","order_id":"ord-12345","user_id":"usr-67890"}
+{"level":"info","ts":"2024-06-01T08:00:04.200Z","caller":"service.go:145","msg":"order created","order_id":"ord-12345","total":99.99}
+{"level":"error","ts":"2024-06-01T08:00:05.000Z","caller":"handler.go:78","msg":"payment failed","error":"insufficient funds","order_id":"ord-12345"}
+{"level":"warn","ts":"2024-06-01T08:00:05.500Z","caller":"handler.go:80","msg":"order rollback","order_id":"ord-12345"}
+{"level":"info","ts":"2024-06-01T08:00:06.000Z","caller":"server.go:120","msg":"server shutdown initiated","signal":"SIGTERM"}
+panic: assignment to entry in nil map
+goroutine 1 [running]:
+main.createConfig()
+	/go/src/app/config.go:15 +0x3a
+main.main()
+	/go/src/app/main.go:10 +0x4a

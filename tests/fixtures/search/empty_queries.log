@@ -1,0 +1,7 @@
+# Fixture: empty query edge cases for search
+# Tests empty string, wildcard-only, and level-only filter queries
+2025-06-15 10:01:00,001 ERROR [main] com.app.auth AuthService - Login failed for user admin
+2025-06-15 10:02:00,002 ERROR [worker-1] com.app.db DatabasePool - Connection timeout after 30s
+2025-06-15 10:03:00,003 ERROR [http-nio-8080] com.app.http RequestHandler - HTTP 500 on GET /api/users
+2025-06-15 10:04:00,004 ERROR [scheduler-1] com.app.task TaskRunner - Batch job failed: out of memory
+2025-06-15 10:05:00,005 ERROR [main] com.app.config ConfigLoader - Missing required property: db.host

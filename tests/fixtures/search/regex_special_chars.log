@@ -1,0 +1,13 @@
+# Test fixture: regex special characters in log messages
+# Purpose: Verify that regex search correctly matches literal special characters
+# (parentheses, brackets, braces, dots, plus, asterisk, pipe, caret, dollar, backslash)
+# when escaped patterns are used.
+
+2025-03-15 10:00:01,001 [main] INFO  com.test.App - Processing call: function(arg1, arg2) returned true
+2025-03-15 10:00:02,002 [main] DEBUG com.test.App - Array access: array[0] = value
+2025-03-15 10:00:03,003 [main] INFO  com.test.App - Object built: obj = {key: 'val'}
+2025-03-15 10:00:04,004 [main] INFO  com.test.App - Release note: version 1.2.3 released
+2025-03-15 10:00:05,005 [main] DEBUG com.test.App - Math result: 2 + 3 * 4 = 14
+2025-03-15 10:00:06,006 [main] INFO  com.test.App - Pipeline: cmd1 | cmd2 | cmd3
+2025-03-15 10:00:07,007 [main] WARN  com.test.App - Currency symbols: price ^100 $200
+2025-03-15 10:00:08,008 [main] ERROR com.test.App - Windows path detected: path = C:\Users\test

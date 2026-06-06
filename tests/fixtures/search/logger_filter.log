@@ -1,0 +1,13 @@
+# Logger filter test — multiple loggers for logger=X filter testing
+2025-04-01 08:01:12,345 INFO  [main] com.example.service.UserService - User login attempt for userId=1001
+2025-04-01 08:02:33,567 DEBUG [main] com.example.service.UserService - Loading user profile from cache
+2025-04-01 08:03:44,890 WARN  [pool-2-thread-1] com.example.service.UserService - Slow query detected: getUserById took 2.3s
+2025-04-01 08:04:55,123 ERROR [pool-2-thread-3] com.example.service.UserService - Failed to authenticate user: invalid token
+2025-04-01 08:05:10,456 INFO  [main] com.example.service.UserService - User session created successfully
+2025-04-01 08:10:22,789 INFO  [main] com.example.service.PaymentService - Processing payment orderId=5001 amount=99.99
+2025-04-01 08:10:45,012 DEBUG [pool-3-thread-1] com.example.service.PaymentService - Validating credit card ending 4242
+2025-04-01 08:11:30,345 ERROR [pool-3-thread-2] com.example.service.PaymentService - Payment declined: insufficient funds
+2025-04-01 08:12:00,678 INFO  [main] com.example.service.PaymentService - Refund issued for orderId=4999
+2025-04-01 08:20:11,111 INFO  [http-nio-8080-exec-1] com.example.controller.OrderController - Received order request POST /api/orders
+2025-04-01 08:20:15,222 WARN  [http-nio-8080-exec-1] com.example.controller.OrderController - Order validation failed: missing shipping address
+2025-04-01 08:20:30,333 ERROR [http-nio-8080-exec-2] com.example.controller.OrderController - Internal error processing order: NullPointerException

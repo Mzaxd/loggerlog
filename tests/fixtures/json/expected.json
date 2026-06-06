@@ -69,6 +69,8 @@
         {"line_number": 3, "level": "INFO", "message": "正常的中文日志消息，包含标点符号：，。！？；：「」"},
         {"line_number": 4, "level": "INFO", "message": "Message with emoji: 🎉 🚀 ✅ ❌ ⚠️ 🔥 💾"},
         {"line_number": 5, "level": "INFO", "thread": "main", "message": "Special characters: <>&\"'`"},
+        {"line_number": 6, "level": "INFO", "message": "Very long message: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."},
+        {"line_number": 7, "level": "INFO", "thread": "main", "message": "Nested JSON in message: {\"key\":\"value\",\"array\":[1,2,3]}"},
         {"line_number": 8, "level": "DEBUG", "thread": "main", "message": "Array value in extra field", "has_extra_fields": true, "extra_field_keys": ["tags"]},
         {"line_number": 9, "level": "INFO", "thread": "main", "message": "Nested object in extra fields", "has_extra_fields": true, "extra_field_keys": ["metadata"]},
         {"line_number": 10, "level": "INFO", "message": null, "note": "Message field is missing - should default to empty string"},

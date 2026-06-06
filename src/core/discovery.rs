@@ -175,6 +175,7 @@ impl FileDiscovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::{self, File};
 
     #[test]
     fn test_analyze_filename() {
@@ -192,5 +193,204 @@ mod tests {
         assert_eq!(group, "app.log");
         assert!(compressed);
         assert!(rotated);
+    }
+
+    // --- analyze_filename additional cases ---
+
+    #[test]
+    fn test_analyze_filename_no_ext() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("syslog");
+        assert_eq!(group, "syslog");
+        assert!(!compressed);
+        assert!(!rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_date_rotation() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.2024-01-15");
+        assert_eq!(group, "app.log");
+        assert!(!compressed);
+        assert!(rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_date_hour() {
+        // chrono::NaiveDate::parse_from_str is lenient: "%Y-%m-%d-%H" successfully parses
+        // "2024-01-15-08" by consuming just the date portion, so it IS detected as rotated.
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.2024-01-15-08");
+        assert_eq!(group, "app.log");
+        assert!(!compressed);
+        assert!(rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_zip() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.1.zip");
+        assert_eq!(group, "app.log");
+        assert!(compressed);
+        assert!(rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_bz2() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.2024-01-01.bz2");
+        assert_eq!(group, "app.log");
+        assert!(compressed);
+        assert!(rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_single_dot() {
+        // "app.log" has one dot; suffix "log" is neither a number nor a date.
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log");
+        assert_eq!(group, "app.log");
+        assert!(!compressed);
+        assert!(!rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_not_number() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.backup");
+        assert_eq!(group, "app.log.backup");
+        assert!(!compressed);
+        assert!(!rotated);
+    }
+
+    #[test]
+    fn test_analyze_filename_no_ext_number() {
+        let (group, compressed, rotated) = FileDiscovery::analyze_filename("server.out.10");
+        assert_eq!(group, "server.out");
+        assert!(!compressed);
+        assert!(rotated);
+    }
+
+    // --- matches_glob ---
+
+    #[test]
+    fn test_matches_glob_star_ext() {
+        assert!(FileDiscovery::matches_glob("file.gz", "*.gz"));
+        assert!(FileDiscovery::matches_glob("archive.tar.gz", "*.gz"));
+        assert!(!FileDiscovery::matches_glob("file.txt", "*.gz"));
+    }
+
+    #[test]
+    fn test_matches_glob_star_only() {
+        // pattern "*" → strip_prefix('*') → Some("") → ends_with("") → always true
+        assert!(FileDiscovery::matches_glob("anything", "*"));
+        assert!(FileDiscovery::matches_glob("", "*"));
+    }
+
+    #[test]
+    fn test_matches_glob_exact() {
+        assert!(FileDiscovery::matches_glob("file.gz", "file.gz"));
+        assert!(!FileDiscovery::matches_glob("file.tar.gz", "file.gz"));
+    }
+
+    #[test]
+    fn test_matches_glob_no_match() {
+        assert!(!FileDiscovery::matches_glob("file.txt", "*.gz"));
+        assert!(!FileDiscovery::matches_glob("notes.md", "*.gz"));
+    }
+
+    // --- group_files ---
+
+    #[test]
+    fn test_group_files_basic() {
+        let files = vec![
+            DiscoveredFile {
+                path: PathBuf::from("/a/app.log"),
+                size: 100,
+                group_name: "app.log".to_string(),
+                is_compressed: false,
+                is_rotated: false,
+            },
+            DiscoveredFile {
+                path: PathBuf::from("/a/app.log.1"),
+                size: 200,
+                group_name: "app.log".to_string(),
+                is_compressed: false,
+                is_rotated: true,
+            },
+            DiscoveredFile {
+                path: PathBuf::from("/a/app.log.2.gz"),
+                size: 50,
+                group_name: "app.log".to_string(),
+                is_compressed: true,
+                is_rotated: true,
+            },
+        ];
+        let groups = FileDiscovery::group_files(&files);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups["app.log"].len(), 3);
+    }
+
+    #[test]
+    fn test_group_files_empty() {
+        let files: Vec<DiscoveredFile> = vec![];
+        let groups = FileDiscovery::group_files(&files);
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn test_group_files_sorted() {
+        let make = |path: &str, group: &str| DiscoveredFile {
+            path: PathBuf::from(path),
+            size: 0,
+            group_name: group.to_string(),
+            is_compressed: false,
+            is_rotated: false,
+        };
+        let files = vec![
+            make("/a/syslog", "syslog"),
+            make("/a/auth.log", "auth.log"),
+            make("/a/app.log", "app.log"),
+        ];
+        let groups = FileDiscovery::group_files(&files);
+        let keys: Vec<&String> = groups.keys().collect();
+        assert_eq!(keys, vec!["app.log", "auth.log", "syslog"]);
+    }
+
+    // --- scan_directory ---
+
+    #[test]
+    fn test_scan_directory_recursive() {
+        let tmp = std::env::temp_dir().join("loggerlog_test_scan_recursive");
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(tmp.join("sub/deep")).unwrap();
+        File::create(tmp.join("root.log")).unwrap();
+        File::create(tmp.join("sub/nested.log")).unwrap();
+        File::create(tmp.join("sub/deep/inner.txt")).unwrap();
+
+        let files = FileDiscovery::scan_directory(&tmp, true, &[]);
+        assert_eq!(files.len(), 3);
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_scan_directory_exclude() {
+        let tmp = std::env::temp_dir().join("loggerlog_test_scan_exclude");
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp).unwrap();
+        File::create(tmp.join("app.log")).unwrap();
+        File::create(tmp.join("debug.log.gz")).unwrap();
+        File::create(tmp.join("archive.txt")).unwrap();
+
+        // Exclude .gz files (but .gz is a compression ext, not a log ext —
+        // scan_directory only accepts log/out/txt/app/no-ext, so .gz is already
+        // filtered out. Let's use a meaningful exclusion.)
+        let files = FileDiscovery::scan_directory(&tmp, false, &["*.txt".to_string()]);
+        // app.log passes, debug.log.gz is excluded by extension filter, archive.txt excluded by pattern
+        assert_eq!(files.len(), 1);
+        assert!(files[0].path.file_name().unwrap().to_str().unwrap().starts_with("app.log"));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_scan_directory_nonexistent() {
+        let path = PathBuf::from("/tmp/loggerlog_nonexistent_dir_12345");
+        let files = FileDiscovery::scan_directory(&path, true, &[]);
+        assert!(files.is_empty());
     }
 }

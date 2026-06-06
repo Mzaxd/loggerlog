@@ -1,0 +1,4 @@
+2025-01-15 10:00:00,000 INFO  [hilo-principal] com.example.App - Sistema iniciado correctamente
+2025-01-15 10:00:01,000 DEBUG [hilo-trabajo] com.example.Servicio - Conexión a la base de datos completada
+2025-01-15 10:00:02,000 WARN  [hilo-principal] com.example.App - Uso de disco al 85%, el umbral es 80%
+2025-01-15 10:00:03,000 ERROR [hilo-errores] com.example.Controlador - Fehler: Umlaut äöü und ß Zeichen

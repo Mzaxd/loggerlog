@@ -20,7 +20,105 @@
         "DEBUG": "~8",
         "WARN": "~5",
         "ERROR": "~3"
-      }
+      },
+      "expected_entries": [
+        {
+          "line": 5,
+          "raw_preview": "2024-09-15 08:00:00.123  INFO --- [           main] c.e.payment.PaymentApplication           : Starting PaymentApplication v3.2.1...",
+          "level": "INFO",
+          "thread": "main",
+          "logger": "c.e.payment.PaymentApplication",
+          "message": "Starting PaymentApplication v3.2.1 on payment-svc-7d8f with PID 1"
+        },
+        {
+          "line": 10,
+          "raw_preview": "2024-09-15 08:00:06.567  INFO --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...",
+          "level": "INFO",
+          "thread": "main",
+          "logger": "com.zaxxer.hikari.HikariDataSource",
+          "message": "HikariPool-1 - Starting..."
+        },
+        {
+          "line": 14,
+          "raw_preview": "2024-09-15 08:00:10.789  INFO --- [           main] c.e.payment.PaymentApplication           : Started PaymentApplication in 10.67 seconds",
+          "level": "INFO",
+          "thread": "main",
+          "logger": "c.e.payment.PaymentApplication",
+          "message": "Started PaymentApplication in 10.67 seconds"
+        },
+        {
+          "line": 15,
+          "raw_preview": "2024-09-15 08:01:00.100  INFO --- [nio-8080-exec-1] c.e.p.controller.HealthController        : Health check...",
+          "level": "INFO",
+          "thread": "nio-8080-exec-1",
+          "logger": "c.e.p.controller.HealthController",
+          "message": "Health check from load balancer (10.128.0.2)"
+        },
+        {
+          "line": 17,
+          "raw_preview": "2024-09-15 08:01:30.250 DEBUG --- [nio-8080-exec-2] c.e.p.service.FraudDetectionService       : Running fraud check...",
+          "level": "DEBUG",
+          "thread": "nio-8080-exec-2",
+          "logger": "c.e.p.service.FraudDetectionService",
+          "message": "Running fraud check for user_id=42001, amount=150.00 USD"
+        },
+        {
+          "line": 20,
+          "raw_preview": "2024-09-15 08:01:31.500  INFO --- [nio-8080-exec-2] c.e.p.service.PaymentGatewayService      : Stripe response...",
+          "level": "INFO",
+          "thread": "nio-8080-exec-2",
+          "logger": "c.e.p.service.PaymentGatewayService",
+          "message": "Stripe response: charge_id=ch_3NqD8fLkdYu7zX, status=succeeded, latency=600ms"
+        },
+        {
+          "line": 27,
+          "raw_preview": "2024-09-15 08:05:02.400  WARN --- [   scheduling-1] c.e.p.jobs.ReconciliationJob             : Mismatch found...",
+          "level": "WARN",
+          "thread": "scheduling-1",
+          "logger": "c.e.p.jobs.ReconciliationJob",
+          "message": "Mismatch found: payment_id=pay_23456, local=COMPLETED, stripe=REFUNDED"
+        },
+        {
+          "line": 32,
+          "raw_preview": "2024-09-15 08:20:00.500 ERROR --- [nio-8080-exec-3] c.e.p.controller.PaymentController       : POST /api/v1/payments - Error...",
+          "level": "ERROR",
+          "thread": "nio-8080-exec-3",
+          "logger": "c.e.p.controller.PaymentController",
+          "message": "POST /api/v1/payments - Error processing payment"
+        },
+        {
+          "line": 33,
+          "raw_preview": "com.stripe.exception.CardException: Your card was declined...",
+          "note": "Stack trace line — no level/thread/logger extracted; scanner extracts from structured log lines only",
+          "level": null,
+          "thread": null,
+          "logger": null
+        },
+        {
+          "line": 41,
+          "raw_preview": "2024-09-15 08:20:00.550  WARN --- [nio-8080-exec-3] c.e.p.controller.PaymentController       : Returning 402...",
+          "level": "WARN",
+          "thread": "nio-8080-exec-3",
+          "logger": "c.e.p.controller.PaymentController",
+          "message": "Returning 402 Payment Required to client"
+        },
+        {
+          "line": 42,
+          "raw_preview": "2024-09-15 08:25:00.000  INFO --- [kafka-consumer-0] c.e.p.messaging.OrderEventListener       : Received event...",
+          "level": "INFO",
+          "thread": "kafka-consumer-0",
+          "logger": "c.e.p.messaging.OrderEventListener",
+          "message": "Received event: OrderCancelled {orderId=ord_456, userId=42001, reason=OUT_OF_STOCK}"
+        },
+        {
+          "line": 44,
+          "raw_preview": "2024-09-15 08:25:00.600  INFO --- [kafka-consumer-0] c.e.p.service.RefundService              : Refund processed...",
+          "level": "INFO",
+          "thread": "kafka-consumer-0",
+          "logger": "c.e.p.service.RefundService",
+          "message": "Refund processed: refund_id=ref_789, order_id=ord_456"
+        }
+      ]
     },
     "python_service.log": {
       "format": "custom_python",
@@ -36,6 +134,87 @@
         "Celery task execution",
         "Python traceback formatting",
         "CSV export task"
+      ],
+      "traceback_note": "Python tracebacks (lines 24-29) are multi-line entries. The scanner processes line-by-line: the ERROR line at 23 extracts level/message, the 'Traceback' line at 24 has no level, and inner trace lines 25-28 are unstructured. The DuplicateEmailError line at 29 may match ERROR via the regex (contains 'Error' as a whole word? No — scanner uses exact keywords: ERROR/WARN/INFO/DEBUG/TRACE/WARNING/SEVERE/FATAL. 'DuplicateEmailError' does not contain 'ERROR' as a whole word).",
+      "expected_entries": [
+        {
+          "line": 5,
+          "raw_preview": "2024-10-01 06:00:00,000 - uvicorn - INFO - Started server process [1]",
+          "level": "INFO",
+          "thread": "1",
+          "logger": "uvicorn",
+          "message": "Started server process [1]"
+        },
+        {
+          "line": 7,
+          "raw_preview": "2024-10-01 06:00:00,200 - app.main - INFO - Initializing UserProfileService v1.5.2",
+          "level": "INFO",
+          "thread": null,
+          "logger": "app.main",
+          "message": "Initializing UserProfileService v1.5.2"
+        },
+        {
+          "line": 11,
+          "raw_preview": "2024-10-01 06:00:00,700 - app.main - INFO - Service ready, listening on 0.0.0.0:8000 (workers=4)",
+          "level": "INFO",
+          "thread": null,
+          "logger": "app.main",
+          "message": "Service ready, listening on 0.0.0.0:8000 (workers=4)"
+        },
+        {
+          "line": 15,
+          "raw_preview": "2024-10-01 06:01:15,210 - app.services.user - DEBUG - Fetching user 42001 from database",
+          "level": "DEBUG",
+          "thread": null,
+          "logger": "app.services.user",
+          "message": "Fetching user 42001 from database"
+        },
+        {
+          "line": 19,
+          "raw_preview": "2024-10-01 06:01:30,300 - app.services.user - WARNING - User 42001 avatar upload exceeded size limit...",
+          "level": "WARN",
+          "thread": null,
+          "logger": "app.services.user",
+          "message": "User 42001 avatar upload exceeded size limit: 15MB > 5MB"
+        },
+        {
+          "line": 23,
+          "raw_preview": "2024-10-01 06:03:00,600 - app.middleware - ERROR - POST /api/v1/users - Unhandled exception",
+          "level": "ERROR",
+          "thread": null,
+          "logger": "app.middleware",
+          "message": "POST /api/v1/users - Unhandled exception"
+        },
+        {
+          "line": 24,
+          "raw_preview": "Traceback (most recent call last):",
+          "note": "Traceback header — no level keyword matches scanner's known list (TRACE is a keyword but 'Traceback' is not a whole-word match)",
+          "level": "TRACE",
+          "message": "Traceback (most recent call last):"
+        },
+        {
+          "line": 29,
+          "raw_preview": "app.exceptions.DuplicateEmailError: Email john.doe@example.com already exists",
+          "note": "Traceback exception line — 'Error' is not a standalone keyword; 'DuplicateEmailError' does not match any level keyword as a whole word",
+          "level": null,
+          "message": "app.exceptions.DuplicateEmailError: Email john.doe@example.com already exists"
+        },
+        {
+          "line": 31,
+          "raw_preview": "2024-10-01 06:05:00,700 - celery.worker - INFO - Task cleanup_expired_tokens[task_id=abc-123] started",
+          "level": "INFO",
+          "thread": null,
+          "logger": "celery.worker",
+          "message": "Task cleanup_expired_tokens[task_id=abc-123] started"
+        },
+        {
+          "line": 34,
+          "raw_preview": "2024-10-01 06:10:05,000 - app.services.export - INFO - Export completed: 50000 rows...",
+          "level": "INFO",
+          "thread": null,
+          "logger": "app.services.export",
+          "message": "Export completed: 50000 rows, file=/tmp/export_20241001.csv (3.2MB)"
+        }
       ]
     },
     "nodejs_app.jsonl": {
@@ -50,7 +229,99 @@
         "Upstream service timeout",
         "Metrics reporting (p50/p95/p99 latency)"
       ],
-      "extra_fields_per_entry": ["service", "method", "path", "statusCode", "duration", "userId", "clientIP", "traceId"]
+      "extra_fields_per_entry": ["service", "method", "path", "statusCode", "duration", "userId", "clientIP", "traceId"],
+      "expected_entries": [
+        {
+          "line": 1,
+          "level": "INFO",
+          "message": "API Gateway starting on port 3000",
+          "timestamp": "2024-11-01T04:00:00.000Z"
+        },
+        {
+          "line": 2,
+          "level": "INFO",
+          "message": "Connected to MongoDB at mongodb://10.0.0.5:27017/gateway",
+          "timestamp": "2024-11-01T04:00:00.500Z"
+        },
+        {
+          "line": 3,
+          "level": "INFO",
+          "message": "Connected to Redis at 10.0.0.6:6379",
+          "timestamp": "2024-11-01T04:00:01.000Z"
+        },
+        {
+          "line": 4,
+          "level": "INFO",
+          "message": "Server listening on 0.0.0.0:3000",
+          "timestamp": "2024-11-01T04:00:01.500Z"
+        },
+        {
+          "line": 5,
+          "level": "INFO",
+          "message": "GET /health",
+          "timestamp": "2024-11-01T04:01:00.000Z"
+        },
+        {
+          "line": 6,
+          "level": "INFO",
+          "message": "POST /api/v2/auth/login",
+          "timestamp": "2024-11-01T04:01:05.000Z"
+        },
+        {
+          "line": 7,
+          "level": "DEBUG",
+          "message": "JWT token issued for user_42001, expires in 3600s",
+          "timestamp": "2024-11-01T04:01:05.200Z"
+        },
+        {
+          "line": 8,
+          "level": "INFO",
+          "message": "GET /api/v2/products?category=electronics&page=1&limit=20",
+          "timestamp": "2024-11-01T04:01:10.000Z"
+        },
+        {
+          "line": 9,
+          "level": "WARN",
+          "message": "Rate limit warning for user_42001: 85/100 requests in window",
+          "timestamp": "2024-11-01T04:01:15.000Z"
+        },
+        {
+          "line": 10,
+          "level": "ERROR",
+          "message": "POST /api/v2/orders",
+          "timestamp": "2024-11-01T04:01:20.000Z"
+        },
+        {
+          "line": 11,
+          "level": "ERROR",
+          "message": "Circuit breaker opened for order-service: failure threshold reached (5/5 failures)",
+          "timestamp": "2024-11-01T04:01:20.500Z"
+        },
+        {
+          "line": 12,
+          "level": "INFO",
+          "message": "GET /api/v2/orders - returning cached fallback response",
+          "timestamp": "2024-11-01T04:01:21.000Z"
+        },
+        {
+          "line": 13,
+          "level": "WARN",
+          "message": "Circuit breaker half-open for order-service: testing connectivity",
+          "timestamp": "2024-11-01T04:02:00.000Z"
+        },
+        {
+          "line": 14,
+          "level": "INFO",
+          "message": "Circuit breaker closed for order-service: service recovered",
+          "timestamp": "2024-11-01T04:02:00.500Z"
+        },
+        {
+          "line": 15,
+          "level": "INFO",
+          "message": "Metrics report: 150 req/min, p50=12ms, p95=234ms, p99=1500ms, error_rate=1.2%",
+          "timestamp": "2024-11-01T04:05:00.000Z"
+        }
+      ]
     },
     "kubernetes_multi.log": {
       "format": "mixed",
@@ -61,6 +332,107 @@
         "Envoy sidecar proxy logs",
         "Fluent-bit log forwarder logs",
         "Kubelet system events"
+      ],
+      "format_types_present": {
+        "logback": "Container: app (lines 6-10) — standard logback with [thread] brackets",
+        "envoy_bracket": "Container: envoy (lines 13-20) — bracket-delimited [timestamp] LEVEL component - message",
+        "fluent_bit": "Container: fluent-bit (lines 23-26) — syslog-like timestamp with component.info: prefix",
+        "syslog": "Kubelet events (lines 29-33) — traditional syslog 'Mon DD HH:MM:SS host process[pid]:' format"
+      },
+      "expected_entries": [
+        {
+          "line": 6,
+          "source": "app (logback)",
+          "raw_preview": "2024-12-01 00:00:00.123  INFO --- [main] com.example.k8s.App : Starting Kubernetes Demo App",
+          "level": "INFO",
+          "thread": "main",
+          "logger": "com.example.k8s.App",
+          "message": "Starting Kubernetes Demo App"
+        },
+        {
+          "line": 9,
+          "source": "app (logback)",
+          "raw_preview": "2024-12-01 00:01:00.100  INFO --- [http-1] com.example.k8s.controller.HealthController : Liveness probe: UP",
+          "level": "INFO",
+          "thread": "http-1",
+          "logger": "com.example.k8s.controller.HealthController",
+          "message": "Liveness probe: UP"
+        },
+        {
+          "line": 10,
+          "source": "app (logback)",
+          "raw_preview": "2024-12-01 00:01:30.200  INFO --- [http-2] com.example.k8s.controller.HealthController : Readiness probe: UP...",
+          "level": "INFO",
+          "thread": "http-2",
+          "logger": "com.example.k8s.controller.HealthController",
+          "message": "Readiness probe: UP (db=OK, redis=OK)"
+        },
+        {
+          "line": 13,
+          "source": "envoy (bracket format)",
+          "raw_preview": "[2024-12-01T00:00:00.000Z] INFO  envoy main - initializing envoy (version: 1.28.0)",
+          "level": "INFO",
+          "thread": null,
+          "logger": "envoy",
+          "message": "initializing envoy (version: 1.28.0)",
+          "note": "Envoy uses [ISO-timestamp] LEVEL component - message. Scanner extracts INFO as level; 'envoy' via single-word logger fallback after bracket."
+        },
+        {
+          "line": 17,
+          "source": "envoy (bracket format)",
+          "raw_preview": "[2024-12-01T00:01:00.100Z] INFO  envoy filter - HTTP/1.1 GET /api/health 200 1ms...",
+          "level": "INFO",
+          "thread": null,
+          "logger": "envoy",
+          "message": "HTTP/1.1 GET /api/health 200 1ms - x-request-id: abc-123"
+        },
+        {
+          "line": 19,
+          "source": "envoy (bracket format)",
+          "raw_preview": "[2024-12-01T00:02:00.300Z] WARN  envoy upstream - retry: GET /api/external failed...",
+          "level": "WARN",
+          "thread": null,
+          "logger": "envoy",
+          "message": "retry: GET /api/external failed (attempt 1/3, reason: connection refused)"
+        },
+        {
+          "line": 23,
+          "source": "fluent-bit (syslog-like)",
+          "raw_preview": "2024-12-01 00:00:00.000000000 +0000 fluent-bit.info: [engine] started",
+          "level": "INFO",
+          "thread": "engine",
+          "logger": null,
+          "message": "[engine] started",
+          "note": "fluent-bit.info: scanner matches INFO in 'fluent-bit.info' as whole word. Thread extracted from [engine] brackets."
+        },
+        {
+          "line": 24,
+          "source": "fluent-bit (syslog-like)",
+          "raw_preview": "2024-12-01 00:00:00.100000000 +0000 fluent-bit.info: [input:tail] listening on /var/log/containers/*.log",
+          "level": "INFO",
+          "thread": "input:tail",
+          "logger": null,
+          "message": "[input:tail] listening on /var/log/containers/*.log"
+        },
+        {
+          "line": 29,
+          "source": "kubelet (syslog)",
+          "raw_preview": "Dec  1 00:00:00 k8s-node-3 kubelet[1234]: INFO: Pod sandbox changed for payment-svc-7d8f...",
+          "level": "INFO",
+          "thread": "1234",
+          "logger": "kubelet",
+          "message": "INFO: Pod sandbox changed for payment-svc-7d8f, will restart",
+          "note": "Syslog format. Scanner finds INFO as level, 1234 from kubelet[1234] as thread. Message extraction depends on separator search after ] bracket."
+        },
+        {
+          "line": 31,
+          "source": "kubelet (syslog)",
+          "raw_preview": "Dec  1 00:00:10 k8s-node-3 kubelet[1234]: INFO: Started container app in pod payment-svc-7d8f",
+          "level": "INFO",
+          "thread": "1234",
+          "logger": "kubelet",
+          "message": "INFO: Started container app in pod payment-svc-7d8f"
+        }
       ]
     }
   }

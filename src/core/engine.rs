@@ -1048,4 +1048,227 @@ mod tests {
         assert!(sq.module.is_none());
         assert_eq!(sq.levels, vec!["ERROR"]);
     }
+
+    // ── SQL WHERE filters ──
+    #[test]
+    fn test_search_source_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.source = Some("console.log".into());
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 3);
+        assert!(rs.results.len() >= 1);
+
+        let mut q2 = make_query();
+        q2.source = Some("nonexistent.log".into());
+        let rs2 = engine.search(&q2).unwrap();
+        assert_eq!(rs2.total_count, 0);
+        assert!(rs2.results.is_empty());
+    }
+
+    #[test]
+    fn test_search_thread_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.thread = Some("main".into());
+        let rs = engine.search(&q).unwrap();
+        // Entries 1 and 3 have thread "main"
+        assert_eq!(rs.total_count, 2);
+        for r in &rs.results {
+            assert_eq!(r.thread.as_deref(), Some("main"));
+        }
+
+        let mut q2 = make_query();
+        q2.thread = Some("nonexistent".into());
+        let rs2 = engine.search(&q2).unwrap();
+        assert_eq!(rs2.total_count, 0);
+    }
+
+    #[test]
+    fn test_search_logger_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.logger = Some("com.example.App".into());
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 1);
+        assert_eq!(rs.results[0].logger.as_deref(), Some("com.example.App"));
+
+        let mut q2 = make_query();
+        q2.logger = Some("com.example.Health".into());
+        let rs2 = engine.search(&q2).unwrap();
+        assert_eq!(rs2.total_count, 1);
+        assert_eq!(rs2.results[0].logger.as_deref(), Some("com.example.Health"));
+    }
+
+    #[test]
+    fn test_search_after_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+
+        // after = before first entry → all 3 match
+        let mut q = make_query();
+        q.after = Some(chrono::DateTime::parse_from_rfc3339("2024-01-14T00:00:00Z").unwrap().with_timezone(&chrono::Utc));
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 3);
+
+        // after = between entry 1 (10:00:00) and entry 2 (10:00:30) → only entries 2,3
+        let mut q2 = make_query();
+        q2.after = Some(chrono::DateTime::parse_from_rfc3339("2024-01-15T10:00:10Z").unwrap().with_timezone(&chrono::Utc));
+        let rs2 = engine.search(&q2).unwrap();
+        assert_eq!(rs2.total_count, 2);
+    }
+
+    #[test]
+    fn test_search_before_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+
+        // before = after last entry → all 3 match
+        let mut q = make_query();
+        q.before = Some(chrono::DateTime::parse_from_rfc3339("2024-01-16T00:00:00Z").unwrap().with_timezone(&chrono::Utc));
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 3);
+
+        // before = before first entry → 0 match
+        let mut q2 = make_query();
+        q2.before = Some(chrono::DateTime::parse_from_rfc3339("2024-01-14T00:00:00Z").unwrap().with_timezone(&chrono::Utc));
+        let rs2 = engine.search(&q2).unwrap();
+        assert_eq!(rs2.total_count, 0);
+    }
+
+    #[test]
+    fn test_search_combined_filters() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        // thread=main AND after=10:00:10 → only entry 3 (line 3, thread main, time 10:01:00)
+        let mut q = make_query();
+        q.thread = Some("main".into());
+        q.after = Some(chrono::DateTime::parse_from_rfc3339("2024-01-15T10:00:10Z").unwrap().with_timezone(&chrono::Utc));
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 1);
+        assert_eq!(rs.results[0].level.as_deref(), Some("INFO"));
+        assert_eq!(rs.results[0].logger.as_deref(), Some("com.example.Health"));
+    }
+
+    // ── regex edge ──
+    #[test]
+    fn test_search_regex_invalid_pattern() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let q = make_query();
+        let result = engine.search_regex("[invalid", &q);
+        assert!(result.is_err(), "invalid regex should return Err");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Invalid regex"), "error message should mention invalid regex");
+    }
+
+    // ── parse_query_string supplements ──
+    #[test]
+    fn test_parse_query_empty() {
+        let sq = parse_query_string("", 100);
+        assert!(sq.fts_query.is_none());
+        assert!(sq.regex_query.is_none());
+        assert!(sq.levels.is_empty());
+        assert!(sq.source.is_none());
+        assert!(sq.after.is_none());
+        assert!(sq.before.is_none());
+        assert!(sq.thread.is_none());
+        assert!(sq.logger.is_none());
+        assert!(sq.project.is_none());
+        assert!(sq.module.is_none());
+        assert!(sq.exclude.is_empty());
+    }
+
+    #[test]
+    fn test_parse_query_only_regex() {
+        let sq = parse_query_string("regex:NullPointerException", 100);
+        assert_eq!(sq.regex_query.as_deref(), Some("NullPointerException"));
+        assert!(sq.fts_query.is_none());
+    }
+
+    #[test]
+    fn test_parse_query_thread_logger() {
+        let sq = parse_query_string("thread=http-nio logger=com.example.App error", 100);
+        assert_eq!(sq.thread.as_deref(), Some("http-nio"));
+        assert_eq!(sq.logger.as_deref(), Some("com.example.App"));
+        assert_eq!(sq.fts_query.as_deref(), Some("error"));
+    }
+
+    #[test]
+    fn test_parse_query_multiple_exclude() {
+        let sq = parse_query_string("exclude=health,metrics exclude=debug error", 100);
+        // Each exclude= takes one value (up to whitespace), so two values
+        assert_eq!(sq.exclude.len(), 2);
+        assert!(sq.exclude.contains(&"health,metrics".to_string()));
+        assert!(sq.exclude.contains(&"debug".to_string()));
+        assert_eq!(sq.fts_query.as_deref(), Some("error"));
+    }
+
+    // ── aggregation ──
+    #[test]
+    fn test_level_stats_with_source_filter() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.source = Some("console.log".into());
+        let stats = engine.level_stats(&q).unwrap();
+        // All 3 entries are from console.log
+        let total: u64 = stats.iter().map(|s| s.count).sum();
+        assert_eq!(total, 3);
+        assert_eq!(stats.len(), 3);
+    }
+
+    #[test]
+    fn test_search_summary_empty_db() {
+        let idx = IndexManager::open_in_memory().unwrap();
+        let engine = SearchEngine::new(idx.conn());
+        let q = make_query();
+        let summary = engine.search_summary(&q, 10).unwrap();
+        assert_eq!(summary.total_count, 0);
+        assert!(summary.level_distribution.is_empty());
+        assert!(summary.source_breakdown.is_empty());
+        assert!(summary.time_range.is_none());
+        assert!(summary.top_messages.is_empty());
+    }
+
+    // ── context ──
+    #[test]
+    fn test_get_context_boundary() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        // context_size=0 → just the requested line
+        let rs = engine.search(&make_query()).unwrap();
+        let file_id = rs.results[0].file_id;
+        let ctx = engine.get_context(file_id, 2, 0).unwrap();
+        assert_eq!(ctx.len(), 1);
+        assert_eq!(ctx[0].line_number, 2);
+    }
+
+    // ── behavior ──
+    #[test]
+    fn test_scan_limit_truncation() {
+        // Verify approximate flag is set when memory filters are active
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.levels = vec!["ERROR".into()];
+        let rs = engine.search(&q).unwrap();
+        // With memory filters active, total_count is approximate
+        assert!(rs.approximate);
+    }
+
+    #[test]
+    fn test_search_no_fts_with_filters() {
+        // Query with only filters, no fts_query → returns all matching entries
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.levels = vec!["ERROR".into(), "WARN".into(), "INFO".into()];
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 3);
+        assert_eq!(rs.returned_count, 3);
+    }
 }

@@ -1,0 +1,7 @@
+2024-03-15 10:00:00.000 TRACE [trace-thread] c.e.s.TraceService - Entering method processOrder
+2024-03-15 10:00:00.100 DEBUG [debug-thread] c.e.s.DebugService - Variable x=42, y=hello
+2024-03-15 10:00:00.200 INFO  [main] c.e.s.InfoService - Order processing started
+2024-03-15 10:00:00.300 WARN  [warn-thread] c.e.s.WarnService - Cache miss rate at 45%
+2024-03-15 10:00:00.400 ERROR [error-thread] c.e.s.ErrorService - Database connection failed
+2024-03-15 10:00:00.500 TRACE [trace-thread] c.e.s.TraceService - Exiting method processOrder
+2024-03-15 10:00:00.600 DEBUG [main] c.e.s.DebugService - Configuration reloaded

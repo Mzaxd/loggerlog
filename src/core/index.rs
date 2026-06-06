@@ -866,4 +866,161 @@ mod tests {
         assert_eq!(idx.total_entries().unwrap(), 0);
         assert_eq!(idx.total_files().unwrap(), 0);
     }
+
+    // ── Incremental indexing ──
+    #[test]
+    fn test_get_file_byte_offset() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/var/log/app.log").unwrap();
+        // Default offset should be 0
+        assert_eq!(idx.get_file_byte_offset(fid).unwrap(), 0);
+        // Update the file with a specific byte_offset
+        idx.update_file(fid, 1024, 4096, 100, "log4j").unwrap();
+        assert_eq!(idx.get_file_byte_offset(fid).unwrap(), 4096);
+    }
+    #[test]
+    fn test_update_file_metadata() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/var/log/app.log").unwrap();
+        idx.insert_entries(&[LogEntry {
+            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            raw: "2024-01-15 INFO test".into(),
+        }]).unwrap();
+        // Update metadata
+        idx.update_file(fid, 8192, 2048, 50, "json").unwrap();
+        // Verify via get_file_by_path
+        let f = idx.get_file_by_path("/var/log/app.log").unwrap().unwrap();
+        assert_eq!(f.size, 8192);
+        assert_eq!(f.byte_offset, 2048);
+        assert_eq!(f.line_count, 50);
+        assert_eq!(f.format, "json");
+    }
+
+    // ── Project/module ──
+    #[test]
+    fn test_sync_projects_file_assignment() {
+        let idx = setup();
+        idx.upsert_project("myproj", "/data/proj").unwrap();
+        idx.get_or_create_file("/data/proj/logs/app.log").unwrap();
+        // Sync with the project from config
+        let projects = vec![test_project("myproj", "/data/proj")];
+        idx.sync_projects(&projects).unwrap();
+        // Verify the file's project_id is set correctly
+        let p = idx.get_project_by_name("myproj").unwrap().unwrap();
+        let project_id: Option<i64> = idx.conn().query_row(
+            "SELECT project_id FROM files WHERE path = ?",
+            params!["/data/proj/logs/app.log"],
+            |row| row.get(0),
+        ).unwrap();
+        assert_eq!(project_id, Some(p.id));
+    }
+    #[test]
+    fn test_sync_projects_longest_prefix() {
+        let idx = setup();
+        // Two projects where one path is a prefix of the other
+        idx.upsert_project("proj", "/data/proj").unwrap();
+        idx.upsert_project("proj2", "/data/proj2").unwrap();
+        idx.get_or_create_file("/data/proj2/logs/app.log").unwrap();
+        let projects = vec![
+            test_project("proj", "/data/proj"),
+            test_project("proj2", "/data/proj2"),
+        ];
+        idx.sync_projects(&projects).unwrap();
+        // File should be assigned to proj2 (longest prefix match), not proj
+        let proj2 = idx.get_project_by_name("proj2").unwrap().unwrap();
+        let project_id: Option<i64> = idx.conn().query_row(
+            "SELECT project_id FROM files WHERE path = ?",
+            params!["/data/proj2/logs/app.log"],
+            |row| row.get(0),
+        ).unwrap();
+        assert_eq!(project_id, Some(proj2.id));
+        let proj = idx.get_project_by_name("proj").unwrap().unwrap();
+        assert_ne!(project_id, Some(proj.id));
+    }
+    #[test]
+    fn test_get_modules_for_project_found() {
+        let idx = setup();
+        idx.upsert_project("myproj", "/data/proj").unwrap();
+        idx.get_or_create_file("/data/proj/auth/auth.log").unwrap();
+        idx.get_or_create_file("/data/proj/api/api.log").unwrap();
+        // Assign files to project
+        let projects = vec![test_project("myproj", "/data/proj")];
+        idx.sync_projects(&projects).unwrap();
+        let modules = idx.get_modules_for_project("myproj").unwrap();
+        assert!(modules.contains(&"auth".to_string()));
+        assert!(modules.contains(&"api".to_string()));
+        assert_eq!(modules.len(), 2);
+    }
+    #[test]
+    fn test_get_modules_for_project_flat() {
+        let idx = setup();
+        idx.upsert_project("myproj", "/data/proj").unwrap();
+        // File directly in project root — no subdirectory
+        idx.get_or_create_file("/data/proj/app.log").unwrap();
+        let projects = vec![test_project("myproj", "/data/proj")];
+        idx.sync_projects(&projects).unwrap();
+        let modules = idx.get_modules_for_project("myproj").unwrap();
+        // get_modules extracts the first path component relative to project path.
+        // For "/data/proj/app.log", relative = "app.log", no '/' found,
+        // so "app.log" becomes the module name.
+        assert_eq!(modules.len(), 1);
+        assert_eq!(modules[0], "app.log");
+    }
+
+    // ── Edge cases ──
+    #[test]
+    fn test_insert_large_batch() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/large.log").unwrap();
+        let entries: Vec<LogEntry> = (0..1500).map(|i| LogEntry {
+            id: None,
+            file_id: fid,
+            line_number: i + 1,
+            byte_offset: (i * 80) as u64,
+            raw: format!("2024-01-15 10:00:{:02} INFO line {} some log content here", i % 60, i),
+        }).collect();
+        let inserted = idx.insert_entries(&entries).unwrap();
+        assert_eq!(inserted, 1500);
+        assert_eq!(idx.total_entries().unwrap(), 1500);
+    }
+    #[test]
+    fn test_fts_search_after_delete() {
+        let idx = setup();
+        let fid = idx.get_or_create_file("/fts-delete.log").unwrap();
+        idx.insert_entries(&[
+            LogEntry { id: None, file_id: fid, line_number: 1, byte_offset: 0,
+                raw: "fts_delete_keyword_xyz should be findable".into() },
+            LogEntry { id: None, file_id: fid, line_number: 2, byte_offset: 50,
+                raw: "another line with fts_delete_keyword_xyz again".into() },
+        ]).unwrap();
+        // FTS search should find both entries
+        let engine = crate::core::engine::SearchEngine::new(idx.conn());
+        let mut q = crate::core::entry::SearchQuery::default();
+        q.limit = 10;
+        q.fts_query = Some("fts_delete_keyword_xyz".into());
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 2);
+        // Delete entries — FTS trigger should remove them
+        idx.clear_file_entries(fid).unwrap();
+        let rs2 = engine.search(&q).unwrap();
+        assert_eq!(rs2.total_count, 0);
+    }
+
+    // ── Schema ──
+    #[test]
+    fn test_schema_has_required_tables() {
+        let idx = setup();
+        let mut stmt = idx.conn().prepare(
+            "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY name"
+        ).unwrap();
+        let tables: Vec<(String, String)> = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        }).unwrap().filter_map(|r| r.ok()).collect();
+        let table_names: Vec<&str> = tables.iter().map(|(n, _)| n.as_str()).collect();
+        assert!(table_names.contains(&"files"), "files table missing. Got: {:?}", table_names);
+        assert!(table_names.contains(&"log_entries"), "log_entries table missing. Got: {:?}", table_names);
+        // log_entries_fts is a virtual table, should appear in sqlite_master
+        assert!(table_names.contains(&"log_entries_fts"), "log_entries_fts table missing. Got: {:?}", table_names);
+        assert!(table_names.contains(&"projects"), "projects table missing. Got: {:?}", table_names);
+    }
 }
