@@ -4,6 +4,11 @@ use anyhow::Result;
 use rusqlite::{params, Connection};
 use std::time::Instant;
 
+/// Default maximum rows fetched from SQL when memory filtering is active.
+const DEFAULT_SCAN_LIMIT: u64 = 100_000;
+/// Maximum rows fetched for aggregation queries (level_stats, search_summary).
+const AGGREGATION_SCAN_LIMIT: u64 = 500_000;
+
 /// Search engine that queries the SQLite FTS5 index.
 /// Structured field filtering (level, timestamp, thread, logger) is done at query time
 /// via scanner functions on raw text, not via SQL column filters.
@@ -14,6 +19,27 @@ pub struct SearchEngine<'a> {
 impl<'a> SearchEngine<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
+    }
+
+    /// Collect iterator results, warning on errors (up to 3 details then summary).
+    fn collect_rows<T>(iter: impl Iterator<Item = Result<T, rusqlite::Error>>) -> Vec<T> {
+        let mut results = Vec::new();
+        let mut err_count = 0usize;
+        for r in iter {
+            match r {
+                Ok(v) => results.push(v),
+                Err(e) => {
+                    err_count += 1;
+                    if err_count <= 3 {
+                        eprintln!("Warning: SQLite row read error: {e}");
+                    }
+                }
+            }
+        }
+        if err_count > 3 {
+            eprintln!("Warning: {err_count} total SQLite row read errors (showed first 3)");
+        }
+        results
     }
 
     /// Check if a query has memory-level filters (applied after SQL fetch).
@@ -32,12 +58,14 @@ impl<'a> SearchEngine<'a> {
         let mut conditions = vec!["1=1".to_string()];
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
 
-        // FTS full-text search
+        // FTS full-text search — wrap in double-quotes to prevent FTS5 syntax errors
+        // from user input containing operators like AND, OR, NOT, *, etc.
         if let Some(ref fts) = query.fts_query {
+            let phrase = format!("\"{}\"", fts.replace('"', "\"\""));
             conditions.push(
                 "e.id IN (SELECT rowid FROM log_entries_fts WHERE log_entries_fts MATCH ?)".to_string()
             );
-            params.push(Box::new(fts.clone()));
+            params.push(Box::new(phrase));
         }
 
         // Source filter
@@ -76,7 +104,10 @@ impl<'a> SearchEngine<'a> {
     /// Build fresh params from query (for a second SQL statement using the same WHERE)
     fn build_params_from_query(&self, query: &SearchQuery) -> Vec<Box<dyn rusqlite::types::ToSql>> {
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
-        if let Some(ref fts) = query.fts_query { params.push(Box::new(fts.clone())); }
+        if let Some(ref fts) = query.fts_query {
+            let phrase = format!("\"{}\"", fts.replace('"', "\"\""));
+            params.push(Box::new(phrase));
+        }
         if let Some(ref source) = query.source { params.push(Box::new(format!("%{}%", source))); }
         if let Some(ref project) = query.project { params.push(Box::new(project.clone())); }
         if let Some(ref module) = query.module { params.push(Box::new(module.clone())); }
@@ -160,7 +191,7 @@ impl<'a> SearchEngine<'a> {
 
         // Fetch candidate rows — overscan if memory filters are active
         let scan_limit = if has_mem {
-            100_000u64
+            DEFAULT_SCAN_LIMIT
         } else {
             (query.limit + query.offset) as u64
         };
@@ -180,28 +211,32 @@ impl<'a> SearchEngine<'a> {
         let select_refs: Vec<&dyn rusqlite::types::ToSql> = select_params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&select_sql)?;
-        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(select_refs.as_slice(), |row| {
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = Self::collect_rows(stmt.query_map(select_refs.as_slice(), |row| {
             Ok((
                 row.get(0)?, row.get(1)?, row.get(2)?,
                 row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
                 row.get::<_, String>(5)?,
             ))
-        })?.filter_map(|r| r.ok()).collect();
+        })?);
 
         // Apply memory filters
         let filtered: Vec<(i64, i64, String, u64, u64, String)> = if has_mem {
-            rows.into_iter()
+            let result: Vec<_> = rows.into_iter()
                 .filter(|(_, _, _, _, _, raw)| Self::matches_memory_filters(raw, query))
-                .collect()
+                .collect();
+            if result.len() as u64 >= DEFAULT_SCAN_LIMIT {
+                eprintln!("Warning: search results may be truncated (scan limit {DEFAULT_SCAN_LIMIT} reached). Use source/project filters to narrow scope.");
+            }
+            result
         } else {
             rows
         };
 
         // Total count: if memory filters active, filtered count is approximate
-        let total_count = if has_mem {
-            filtered.len() as u64
+        let (total_count, approximate) = if has_mem {
+            (filtered.len() as u64, true)
         } else {
-            sql_total
+            (sql_total, false)
         };
 
         // Apply offset and limit
@@ -221,6 +256,7 @@ impl<'a> SearchEngine<'a> {
             returned_count: results.len() as u64,
             offset: query.offset,
             elapsed_ms: elapsed.as_millis() as u64,
+            approximate,
             results,
         })
     }
@@ -234,7 +270,7 @@ impl<'a> SearchEngine<'a> {
         let (where_clause, _params) = self.build_where_clause(query);
 
         // Fetch more candidates for regex + memory filtering
-        let scan_limit = 100_000u64;
+        let scan_limit = DEFAULT_SCAN_LIMIT;
         let select_sql = format!(
             "SELECT e.id, e.file_id, f.path, e.line_number, e.byte_offset, e.raw
              FROM log_entries e
@@ -250,26 +286,26 @@ impl<'a> SearchEngine<'a> {
         let select_refs: Vec<&dyn rusqlite::types::ToSql> = select_params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&select_sql)?;
-        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(select_refs.as_slice(), |row| {
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = Self::collect_rows(stmt.query_map(select_refs.as_slice(), |row| {
             Ok((
                 row.get(0)?, row.get(1)?, row.get(2)?,
                 row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
                 row.get::<_, String>(5)?,
             ))
-        })?.filter_map(|r| r.ok()).collect();
+        })?);
 
-        let mut results: Vec<SearchResult> = rows.into_iter()
+        let mut total_count = 0u64;
+        let results: Vec<SearchResult> = rows.into_iter()
             .map(|(id, file_id, source, line_number, byte_offset, raw)| {
                 SearchResult::from_raw(id, file_id, source, line_number, byte_offset, &raw)
             })
             .filter(|r| re.is_match(&r.raw))
             .filter(|r| Self::matches_memory_filters(&r.raw, query))
-            .filter(|r| !query.exclude.iter().any(|ex| r.raw.contains(ex)))
+            .inspect(|_| total_count += 1)
+            .skip(query.offset as usize)
             .take(query.limit as usize)
             .collect();
 
-        let total_count = results.len() as u64;
-        results.truncate(query.limit as usize);
         let elapsed = start.elapsed();
 
         Ok(SearchResultSet {
@@ -277,6 +313,7 @@ impl<'a> SearchEngine<'a> {
             returned_count: results.len() as u64,
             offset: query.offset,
             elapsed_ms: elapsed.as_millis() as u64,
+            approximate: true,
             results,
         })
     }
@@ -294,13 +331,13 @@ impl<'a> SearchEngine<'a> {
              ORDER BY e.line_number"
         )?;
 
-        let rows: Vec<(i64, i64, String, u64, u64, String)> = stmt.query_map(params![file_id, min_line as i64, max_line as i64], |row| {
+        let rows: Vec<(i64, i64, String, u64, u64, String)> = Self::collect_rows(stmt.query_map(params![file_id, min_line as i64, max_line as i64], |row| {
             Ok((
                 row.get(0)?, row.get(1)?, row.get(2)?,
                 row.get::<_, i64>(3)? as u64, row.get::<_, i64>(4)? as u64,
                 row.get::<_, String>(5)?,
             ))
-        })?.filter_map(|r| r.ok()).collect();
+        })?);
 
         let results: Vec<SearchResult> = rows.into_iter()
             .map(|(id, file_id, source, line_number, byte_offset, raw)| {
@@ -317,7 +354,7 @@ impl<'a> SearchEngine<'a> {
         let (where_clause, params) = self.build_where_clause(query);
 
         // Fetch all raw lines for the query scope
-        let scan_limit = 500_000u64;
+        let scan_limit = AGGREGATION_SCAN_LIMIT;
         let sql = format!(
             "SELECT e.raw FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} LIMIT {}",
             where_clause, scan_limit
@@ -325,10 +362,14 @@ impl<'a> SearchEngine<'a> {
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&sql)?;
-        let rows: Vec<String> = stmt.query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?
-            .filter_map(|r| r.ok())
+        let rows: Vec<String> = Self::collect_rows(stmt.query_map(param_refs.as_slice(), |row| row.get::<_, String>(0))?)
+            .into_iter()
             .filter(|raw| Self::matches_memory_filters(raw, query))
             .collect();
+
+        if rows.len() as u64 >= AGGREGATION_SCAN_LIMIT {
+            eprintln!("Warning: level statistics may be incomplete (scan limit {AGGREGATION_SCAN_LIMIT} reached).");
+        }
 
         // Aggregate in memory
         let mut counts: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
@@ -350,7 +391,7 @@ impl<'a> SearchEngine<'a> {
         let start = Instant::now();
         let (where_clause, params) = self.build_where_clause(query);
 
-        let scan_limit = 500_000u64;
+        let scan_limit = AGGREGATION_SCAN_LIMIT;
         let sql = format!(
             "SELECT e.raw, f.path FROM log_entries e JOIN files f ON e.file_id = f.id WHERE {} LIMIT {}",
             where_clause, scan_limit
@@ -358,9 +399,13 @@ impl<'a> SearchEngine<'a> {
         let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
 
         let mut stmt = self.conn.prepare(&sql)?;
-        let rows: Vec<(String, String)> = stmt.query_map(param_refs.as_slice(), |row| {
+        let rows: Vec<(String, String)> = Self::collect_rows(stmt.query_map(param_refs.as_slice(), |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })?.filter_map(|r| r.ok()).collect();
+        })?);
+
+        if rows.len() as u64 >= AGGREGATION_SCAN_LIMIT {
+            eprintln!("Warning: search summary may be incomplete (scan limit {AGGREGATION_SCAN_LIMIT} reached).");
+        }
 
         // Apply memory filters
         let filtered: Vec<&(String, String)> = rows.iter()
@@ -443,6 +488,7 @@ pub struct SearchResultSet {
     pub returned_count: u64,
     pub offset: u32,
     pub elapsed_ms: u64,
+    pub approximate: bool,
     pub results: Vec<SearchResult>,
 }
 
@@ -790,6 +836,25 @@ mod tests {
         assert_eq!(rs.results.len(), 1);
         // Level is extracted from raw by scanner
         assert_eq!(rs.results[0].level.as_deref(), Some("WARN"));
+    }
+    #[test]
+    fn test_search_fts_special_syntax_no_panic() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.fts_query = Some("NOT AND OR".into());
+        let rs = engine.search(&q);
+        assert!(rs.is_ok(), "FTS5 operators should not cause panic/error");
+    }
+    #[test]
+    fn test_search_fts_quoted_phrase() {
+        let db = setup_db();
+        let engine = SearchEngine::new(db.conn());
+        let mut q = make_query();
+        q.fts_query = Some("timeout".into());
+        // Phrase wrapping should still find the token
+        let rs = engine.search(&q).unwrap();
+        assert_eq!(rs.total_count, 1);
     }
     #[test]
     fn test_search_no_results() {

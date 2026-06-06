@@ -26,8 +26,9 @@ fn level_regex() -> &'static Regex {
             .map(|kw| regex::escape(kw))
             .collect::<Vec<_>>()
             .join("|");
-        // Preceded by start-of-string or non-word char; followed by non-word char or end-of-string
-        Regex::new(&format!(r"(?:^|[^a-zA-Z])({})(?:[^a-zA-Z]|$)", pattern)).unwrap()
+        // Use \b word boundary — \b treats [a-zA-Z0-9_] as word chars,
+        // so INFO_GRAPHICS and 3ERROR are correctly rejected.
+        Regex::new(&format!(r"\b({})\b", pattern)).unwrap()
     })
 }
 
@@ -539,6 +540,18 @@ mod tests {
             extract_level("The operation ERRORED out"),
             None
         );
+    }
+
+    #[test]
+    fn test_extract_level_no_false_positive_underscore() {
+        // "INFO_GRAPHICS" should NOT match INFO (underscore is a word char)
+        assert_eq!(extract_level("INFO_GRAPHICS rendering pipeline started"), None);
+    }
+
+    #[test]
+    fn test_extract_level_no_false_positive_digit() {
+        // "ERROR3" should NOT match ERROR (digit is a word char)
+        assert_eq!(extract_level("ERROR3 process exited"), None);
     }
 
     #[test]

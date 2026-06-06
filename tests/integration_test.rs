@@ -31,8 +31,11 @@ fn create_raw_entries(content: &str, file_id: i64, start_offset: u64) -> Vec<Log
     let mut entries = Vec::new();
     let mut byte_offset = start_offset;
     let mut line_number = 0u64;
-    for line in content.lines() {
+    let lines: Vec<&str> = content.lines().collect();
+    let has_trailing_newline = content.ends_with('\n');
+    for (i, line) in lines.iter().enumerate() {
         line_number += 1;
+        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline { 0 } else { 1 };
         entries.push(LogEntry {
             id: None,
             file_id,
@@ -40,7 +43,7 @@ fn create_raw_entries(content: &str, file_id: i64, start_offset: u64) -> Vec<Log
             byte_offset,
             raw: line.to_string(),
         });
-        byte_offset += line.len() as u64 + 1;
+        byte_offset += line.len() as u64 + newline_bytes;
     }
     entries
 }

@@ -82,7 +82,7 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
+                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
             } else {
                 let existing = existing_files.iter().find(|f| f.path == job.file_path);
                 let current_byte_offset = existing.map(|f| f.byte_offset).unwrap_or(0);
@@ -90,15 +90,25 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
                 let start_byte = current_byte_offset as u64;
+                // Filter new lines, tracking skipped count and actual byte offset of first kept line
                 let mut byte_count = 0u64;
-                let new_lines: Vec<String> = lines
-                    .into_iter()
-                    .filter(|line| {
-                        byte_count += line.len() as u64 + 1;
-                        byte_count > start_byte
-                    })
-                    .collect();
-                (create_raw_entries(&new_lines.join("\n"), job.file_id, start_byte), fmt.to_string())
+                let mut skipped_lines = 0u64;
+                let mut actual_start_byte = start_byte;
+                let mut kept_lines: Vec<String> = Vec::new();
+                for line in &lines {
+                    let line_end = byte_count + line.len() as u64 + 1;
+                    if line_end > start_byte {
+                        if kept_lines.is_empty() {
+                            actual_start_byte = byte_count;
+                        }
+                        kept_lines.push(line.clone());
+                    } else {
+                        skipped_lines += 1;
+                    }
+                    byte_count = line_end;
+                }
+                let new_content = kept_lines.join("\n");
+                (create_raw_entries(&new_content, job.file_id, actual_start_byte, skipped_lines), fmt.to_string())
             };
 
             Ok(JobResult {
@@ -324,33 +334,40 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
     let db_results: Vec<IncrResult> = jobs
         .par_iter()
         .map(|job| -> Result<IncrResult> {
+            // Declare early — set by the incremental-read fallback path
+            let mut seek_fallback_needs_clear = false;
             let (entries, format_str) = if job.is_compressed {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
+                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
             } else if job.needs_full_read {
                 let content = encoding::read_file_to_utf8(&job.file_path, None);
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0), fmt.to_string())
+                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
             } else {
-                let content = match encoding::read_file_from_offset(&job.file_path, job.stored_offset as u64) {
-                    Ok(c) => c,
-                    Err(_) => encoding::read_file_to_utf8(&job.file_path, None),
-                };
+                let (content, start_byte, start_line, needs_clear_fb) =
+                    match encoding::read_file_from_offset(&job.file_path, job.stored_offset as u64) {
+                        Ok(c) => (c, job.stored_offset as u64, job.existing_line_count as u64, false),
+                        Err(_) => {
+                            eprintln!("Warning: seek failed for {}, re-indexing from start", job.file_path);
+                            (encoding::read_file_to_utf8(&job.file_path, None), 0u64, 0u64, true)
+                        }
+                    };
+                seek_fallback_needs_clear = needs_clear_fb;
                 let content = content;
                 if content.trim().is_empty() {
                     return Ok(IncrResult {
                         file_id: job.file_id, file_size: job.file_size,
                         entries: Vec::new(), format_str: "unknown".into(),
-                        is_compressed: false, needs_clear: false,
+                        is_compressed: false, needs_clear: job.needs_clear,
                         existing_line_count: 0,
                     });
                 }
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, job.stored_offset as u64), fmt.to_string())
+                (create_raw_entries(&content, job.file_id, start_byte, start_line), fmt.to_string())
             };
 
             Ok(IncrResult {
@@ -358,7 +375,7 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
                 entries,
                 format_str,
                 is_compressed: job.is_compressed,
-                needs_clear: job.needs_clear,
+                needs_clear: job.needs_clear || seek_fallback_needs_clear,
                 existing_line_count: job.existing_line_count,
             })
         })
@@ -405,13 +422,19 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
 }
 
 /// Create raw-only LogEntry objects from file content, no parsing.
-fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64) -> Vec<LogEntry> {
+/// `start_byte_offset` is the byte position of the first byte in `content`.
+/// `start_line_number` is the 1-based line number of the first line in `content`.
+fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64, start_line_number: u64) -> Vec<LogEntry> {
     let mut entries = Vec::new();
     let mut byte_offset = start_byte_offset;
-    let mut line_number = 0u64;
-    for line in content.lines() {
+    let mut line_number = start_line_number;
+    let lines: Vec<&str> = content.lines().collect();
+    let has_trailing_newline = content.ends_with('\n');
+    for (i, line) in lines.iter().enumerate() {
         line_number += 1;
-        let line_bytes = line.len() as u64 + 1; // +1 for newline
+        // Last line without trailing newline: don't add +1
+        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline { 0 } else { 1 };
+        let line_bytes = line.len() as u64 + newline_bytes;
         entries.push(LogEntry {
             id: None,
             file_id,
@@ -422,4 +445,52 @@ fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64) -> Ve
         byte_offset += line_bytes;
     }
     entries
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_entry(file_id: i64, line_number: u64, byte_offset: u64, raw: &str) -> LogEntry {
+        LogEntry { id: None, file_id, line_number, byte_offset, raw: raw.to_string() }
+    }
+
+    #[test]
+    fn test_create_raw_entries_basic() {
+        let content = "line1\nline2\nline3\n";
+        let entries = create_raw_entries(content, 1, 0, 0);
+        assert_eq!(entries.len(), 3);
+        assert_eq!(entries[0].line_number, 1);
+        assert_eq!(entries[0].byte_offset, 0);
+        assert_eq!(entries[2].line_number, 3);
+        assert_eq!(entries[2].byte_offset, 12); // "line1\nline2\nline3\n" = 5+1+5+1+5+1 = 18, but we don't track final offset
+    }
+
+    #[test]
+    fn test_create_raw_entries_start_line_number() {
+        let content = "new1\nnew2\n";
+        let entries = create_raw_entries(content, 1, 100, 50);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].line_number, 51);
+        assert_eq!(entries[1].line_number, 52);
+        assert_eq!(entries[0].byte_offset, 100);
+    }
+
+    #[test]
+    fn test_create_raw_entries_no_trailing_newline() {
+        let content = "line1\nline2"; // no trailing newline
+        let entries = create_raw_entries(content, 1, 0, 0);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].byte_offset, 0);
+        assert_eq!(entries[1].byte_offset, 6); // "line1" (5) + "\n" (1) = 6
+    }
+
+    #[test]
+    fn test_create_raw_entries_with_trailing_newline() {
+        let content = "line1\nline2\n"; // has trailing newline
+        let entries = create_raw_entries(content, 1, 0, 0);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].byte_offset, 0);
+        assert_eq!(entries[1].byte_offset, 6); // same: "line1\n" = 6
+    }
 }

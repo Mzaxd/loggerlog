@@ -219,10 +219,11 @@ fn format_table(result_set: &SearchResultSet) -> String {
     }
 
     let mut output = format!("{table}");
+    let count_str = if result_set.approximate { format!("~{}", result_set.total_count) } else { result_set.total_count.to_string() };
     output.push_str(&format!(
         "\nShowing {} of {} results ({:.1}ms)",
         result_set.returned_count,
-        result_set.total_count,
+        count_str,
         result_set.elapsed_ms as f64 / 1000.0
     ));
     output
@@ -241,7 +242,7 @@ fn format_compact(result_set: &SearchResultSet) -> String {
     lines.push(format!(
         "\nShowing {} of {} results ({:.1}ms)",
         result_set.returned_count,
-        result_set.total_count,
+        if result_set.approximate { format!("~{}", result_set.total_count) } else { result_set.total_count.to_string() },
         result_set.elapsed_ms as f64 / 1000.0
     ));
     lines.join("\n")
@@ -315,7 +316,8 @@ fn shorten_path(path: &str) -> String {
 
 fn truncate(s: &str, max_len: usize) -> String {
     if s.len() > max_len {
-        format!("{}...", &s[..max_len - 3])
+        let end = s.floor_char_boundary(max_len - 3);
+        format!("{}...", &s[..end])
     } else {
         s.to_string()
     }
@@ -735,6 +737,14 @@ mod tests {
     #[test]
     fn test_truncate_long() {
         assert_eq!(truncate("hello world this is a test", 12), "hello wor...");
+    }
+    #[test]
+    fn test_truncate_utf8_multibyte() {
+        // Chinese characters are 3 bytes each — truncating at byte boundary would panic
+        let input = "你好世界hello world this is a very long string";
+        let result = truncate(input, 10);
+        assert!(!result.is_empty());
+        assert!(result.ends_with("..."));
     }
 
     // ── deduplicate_results tests ──
