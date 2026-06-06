@@ -1,6 +1,6 @@
 [package]
 name = "loggerlog"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Lightweight CLI log search tool powered by SQLite FTS5"
 license = "MIT"

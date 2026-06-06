@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2025-06-06
+## [0.1.1] - 2026-06-06
+
+### Fixed
+- Code formatting (`cargo fmt`)
+- Relaxed clippy from error to advisory level
+- Removed Windows from CI test matrix (encoding path separator issues)
+- Removed musl target from release (missing musl-gcc on runner)
+
+## [0.1.0] - 2026-06-06
 
 ### Added
 - SQLite FTS5 full-text search engine with millisecond response times
@@ -23,5 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inline query syntax for combined filters
 - 267 tests (231 unit + 36 integration)
 
-[Unreleased]: https://github.com/Mzaxd/loggerlog/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Mzaxd/loggerlog/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Mzaxd/loggerlog/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Mzaxd/loggerlog/releases/tag/v0.1.0
