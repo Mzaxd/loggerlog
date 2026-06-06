@@ -35,10 +35,9 @@ cargo run -- search --project myproject --module auth "error"
 cargo test
 
 # 运行单个模块的测试
-cargo test --lib core::parser     # parser 模块测试
+cargo test --lib core::scanner    # scanner 模块测试
 cargo test --lib core::engine     # engine 模块测试
 cargo test --lib core::discovery  # discovery 模块测试
-cargo test --lib core::formats    # formats 子模块测试
 ```
 
 无集成测试。
@@ -50,8 +49,7 @@ cargo test --lib core::formats    # formats 子模块测试
 **core/** — 核心引擎，零 clap 依赖的纯库：
 - `engine.rs` — SearchEngine：构建 FTS5 SQL 查询 + 正则回退，`parse_query_string()` 解析搜索语法（`level=ERROR`、`after=1h-ago`、`regex:...`、`project=`、`module=`）
 - `index.rs` — IndexManager：SQLite WAL 模式，`files` / `log_entries` / `log_entries_fts` / `projects` 四表 + 自动同步触发器，通过 `byte_offset` 实现增量索引，`sync_projects()` 实现项目归属
-- `parser.rs` — LogLineParser：采样 50 行自动检测格式（60% 阈值），分派到各格式解析器
-- `formats/` — LogParser trait 实现：`log4j.rs`（Log4j + Logback）、`json_log.rs`（JSON 结构化）、`plain.rs`（纯文本回退）
+- `scanner.rs` — 日志字段提取：extract_level / extract_timestamp / extract_message / extract_thread / extract_logger（支持 log4j / logback / JSON / 纯文本），detect_format_hint 格式检测
 - `discovery.rs` — FileDiscovery：walkdir 遍历 + 日志轮转识别（`.1`、`.2024-01-15.gz` 等）
 - `encoding.rs` — chardetng + encoding_rs 自动编码检测
 - `watcher.rs` — notify + debouncer-mini 实时文件监控

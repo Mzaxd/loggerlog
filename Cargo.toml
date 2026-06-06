@@ -8,10 +8,6 @@ description = "Lightweight CLI log search tool"
 # CLI
 clap = { version = "4", features = ["derive", "string"] }
 comfy-table = "7"
-colored = "2"
-
-# Async runtime
-tokio = { version = "1", features = ["full"] }
 
 # Database
 rusqlite = { version = "0.32", features = ["bundled"] }
@@ -24,8 +20,6 @@ toml = "0.8"
 # Log parsing
 regex = "1"
 chrono = { version = "0.4", features = ["serde"] }
-log = "0.4"
-env_logger = "0.11"
 
 # Encoding detection
 encoding_rs = "0.8"
@@ -39,18 +33,13 @@ notify = "7"
 notify-debouncer-mini = "0.5"
 
 # File system traversal
-ignore = "0.4"
 walkdir = "2"
-
-# Memory-mapped files
-memmap2 = "0.9"
 
 # Parallel processing
 rayon = "1.10"
 
 # Error handling
 anyhow = "1"
-thiserror = "2"
 
 # Directory paths
 dirs = "6"

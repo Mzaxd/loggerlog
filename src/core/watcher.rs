@@ -4,19 +4,23 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 
-/// File change event
+/// File change event from the watcher.
+/// Note: notify-debouncer-mini only provides debounced "any change" events,
+/// not specific Create/Modify/Remove. Consumers inspect the filesystem to determine
+/// what actually happened.
 #[derive(Debug, Clone)]
-pub enum FileChangeEvent {
-    Changed(PathBuf),
+pub struct FileChangeEvent {
+    pub path: PathBuf,
 }
 
-/// File watcher that monitors directories for changes
+/// File watcher that monitors directories for changes using notify + debouncer.
 pub struct FileWatcher {
     _debouncer: notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
 }
 
 impl FileWatcher {
-    /// Start watching a list of directories
+    /// Start watching a list of directories recursively.
+    /// Returns the watcher (must be held alive) and a receiver for file change events.
     pub fn watch(
         directories: &[PathBuf],
         debounce_ms: u64,
@@ -28,7 +32,7 @@ impl FileWatcher {
             move |result: DebounceEventResult| {
                 if let Ok(events) = result {
                     for event in events {
-                        let _ = tx.send(FileChangeEvent::Changed(event.path.clone()));
+                        let _ = tx.send(FileChangeEvent { path: event.path.clone() });
                     }
                 }
             },

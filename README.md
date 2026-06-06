@@ -220,7 +220,7 @@ loggerlog search "level=ERROR,WARN after=1h-ago" --summary
 ```bash
 cargo build            # 构建（debug）
 cargo build --release  # 构建（release）
-cargo test             # 运行 96 个测试
+cargo test             # 运行 158 个测试
 cargo run -- --help    # 查看 CLI 帮助
 ```
 
@@ -230,9 +230,8 @@ cargo run -- --help    # 查看 CLI 帮助
 |------|--------|----------|
 | `engine.rs` | 37 | parse_duration/relative_time/take_value, parse_query_string 全部过滤器组合, build_where_clause, search/search_regex 含 FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
 | `index.rs` | 21 | 建表/迁移, files CRUD, entries CRUD, FTS 触发器同步, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
+| `scanner.rs` | 47 | extract_level/timestamp/message/thread/logger 全格式 + JSON, detect_format_hint, 性能测试 |
 | `search.rs` | 30 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line 多语言, extract_exception_class, fold_stack_traces, shorten_path, truncate |
-| `parser.rs` | 4 | 自动格式检测 + 单行解析 |
-| `formats` | 4 | log4j/logback/JSON 解析 |
 | `discovery.rs` | 1 | 文件名分析 |
 
 ## 架构
@@ -251,11 +250,7 @@ src/
 │   ├── engine.rs           # SearchEngine + 查询构建 + 摘要 + 统计
 │   ├── index.rs            # IndexManager + SQLite schema + 增量索引
 │   ├── entry.rs            # 数据模型（LogEntry, SearchResult, SearchQuery）
-│   ├── parser.rs           # LogLineParser + 格式自动检测
-│   ├── formats/            # LogParser trait 实现
-│   │   ├── log4j.rs        # Log4j + Logback 解析器
-│   │   ├── json_log.rs     # JSON 结构化日志解析器
-│   │   └── plain.rs        # 纯文本回退解析器
+│   ├── scanner.rs          # 日志字段提取 + 格式自动检测（log4j/logback/JSON/plain）
 │   ├── discovery.rs        # FileDiscovery + 轮转识别
 │   ├── encoding.rs         # chardetng 编码检测
 │   ├── watcher.rs          # notify 文件监控
