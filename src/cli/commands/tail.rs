@@ -55,8 +55,12 @@ pub fn run(
                     if let Ok(new_meta) = std::fs::metadata(&event.path) {
                         let should_switch = if tailed.path.exists() {
                             if let Ok(cur_meta) = std::fs::metadata(&tailed.path) {
-                                let new_modified = new_meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                                let cur_modified = cur_meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                let new_modified = new_meta
+                                    .modified()
+                                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                let cur_modified = cur_meta
+                                    .modified()
+                                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
                                 // Switch if the new file is more recently modified or smaller (fresh rotation)
                                 new_modified > cur_modified || new_meta.len() < cur_meta.len()
                             } else {
@@ -99,7 +103,11 @@ impl TailedFile {
         let last_size = file.metadata()?.len();
         let mut reader = BufReader::new(file);
         reader.get_mut().seek(SeekFrom::End(0))?;
-        Ok(Self { path: path.to_path_buf(), reader, last_size })
+        Ok(Self {
+            path: path.to_path_buf(),
+            reader,
+            last_size,
+        })
     }
 
     /// Check if the file size decreased (log rotation), and re-seek to end if so.
@@ -115,10 +123,7 @@ impl TailedFile {
 }
 
 /// Resolve source argument into the initial file to tail and directories to watch.
-fn resolve_target(
-    source: Option<&str>,
-    cfg: &config::Config,
-) -> Result<(PathBuf, Vec<PathBuf>)> {
+fn resolve_target(source: Option<&str>, cfg: &config::Config) -> Result<(PathBuf, Vec<PathBuf>)> {
     match source {
         Some(s) => {
             let p = PathBuf::from(s);
@@ -135,9 +140,16 @@ fn resolve_target(
         }
         None => {
             if cfg.sources.directories.is_empty() {
-                anyhow::bail!("No log directories configured. Use 'loggerlog config add-dir <path>' first.");
+                anyhow::bail!(
+                    "No log directories configured. Use 'loggerlog config add-dir <path>' first."
+                );
             }
-            let dirs: Vec<PathBuf> = cfg.sources.directories.iter().map(|d| PathBuf::from(&d.path)).collect();
+            let dirs: Vec<PathBuf> = cfg
+                .sources
+                .directories
+                .iter()
+                .map(|d| PathBuf::from(&d.path))
+                .collect();
             let first_dir = &dirs[0];
             let file = find_most_recent_log(first_dir)?;
             Ok((file, dirs))

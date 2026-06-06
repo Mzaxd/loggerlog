@@ -30,8 +30,10 @@ pub fn run(
     if !no_sync {
         match super::index::incremental_sync(config_path) {
             Ok(result) if result.files_updated > 0 => {
-                eprintln!("[sync] {} files updated, {} new entries",
-                    result.files_updated, result.new_entries);
+                eprintln!(
+                    "[sync] {} files updated, {} new entries",
+                    result.files_updated, result.new_entries
+                );
             }
             Err(e) => {
                 eprintln!("Warning: incremental sync failed: {}", e);
@@ -45,7 +47,8 @@ pub fn run(
 
     let mut sq = engine::parse_query_string(query_str, limit);
     if !levels.is_empty() {
-        sq.levels = levels.iter()
+        sq.levels = levels
+            .iter()
             .flat_map(|l| l.split(',').map(|s| s.trim().to_uppercase()))
             .collect();
     }
@@ -104,23 +107,32 @@ pub fn run(
     }
 
     // Fetch context lines if requested
-    let context_data: Option<Vec<(crate::core::entry::SearchResult, Vec<crate::core::entry::SearchResult>)>> =
-        if let Some(n) = context_size {
-            let mut ctx = Vec::new();
-            for r in &result_set.results {
-                let lines = search_engine.get_context(r.file_id, r.line_number, n)?;
-                ctx.push((r.clone(), lines));
-            }
-            Some(ctx)
-        } else {
-            None
-        };
+    let context_data: Option<
+        Vec<(
+            crate::core::entry::SearchResult,
+            Vec<crate::core::entry::SearchResult>,
+        )>,
+    > = if let Some(n) = context_size {
+        let mut ctx = Vec::new();
+        for r in &result_set.results {
+            let lines = search_engine.get_context(r.file_id, r.line_number, n)?;
+            ctx.push((r.clone(), lines));
+        }
+        Some(ctx)
+    } else {
+        None
+    };
 
     // Level stats for header display
     let level_stats = search_engine.level_stats(&sq).ok();
 
     // Format output to string
-    let output_str = format_output(&result_set, level_stats.as_deref(), context_data.as_deref(), output);
+    let output_str = format_output(
+        &result_set,
+        level_stats.as_deref(),
+        context_data.as_deref(),
+        output,
+    );
 
     // Apply max-chars truncation
     let final_output = match max_chars {
@@ -132,7 +144,11 @@ pub fn run(
     if let Some(ref path) = output_file {
         std::fs::write(path, &final_output)?;
         println!("Output written to: {}", path);
-        println!("Total: {} results ({:.1}ms)", result_set.total_count, result_set.elapsed_ms as f64 / 1000.0);
+        println!(
+            "Total: {} results ({:.1}ms)",
+            result_set.total_count,
+            result_set.elapsed_ms as f64 / 1000.0
+        );
     } else {
         print!("{}", final_output);
     }
@@ -144,26 +160,32 @@ pub fn run(
 fn format_output(
     result_set: &SearchResultSet,
     level_stats: Option<&[engine::LevelCount]>,
-    context_data: Option<&[(crate::core::entry::SearchResult, Vec<crate::core::entry::SearchResult>)]>,
+    context_data: Option<
+        &[(
+            crate::core::entry::SearchResult,
+            Vec<crate::core::entry::SearchResult>,
+        )],
+    >,
     output: &OutputFormat,
 ) -> String {
-    let level_header = level_stats.map(|ls| {
-        let parts: Vec<String> = ls.iter()
-            .map(|lc| format!("{}: {}", lc.level.to_lowercase(), lc.count))
-            .collect();
-        format!("{}\n\n", parts.join(" | "))
-    }).unwrap_or_default();
+    let level_header = level_stats
+        .map(|ls| {
+            let parts: Vec<String> = ls
+                .iter()
+                .map(|lc| format!("{}: {}", lc.level.to_lowercase(), lc.count))
+                .collect();
+            format!("{}\n\n", parts.join(" | "))
+        })
+        .unwrap_or_default();
 
     match output {
-        OutputFormat::Json => {
-            serde_json::to_string_pretty(&result_set).unwrap_or_default()
-        }
-        OutputFormat::Raw => {
-            result_set.results.iter()
-                .map(|r| r.raw.clone())
-                .collect::<Vec<_>>()
-                .join("\n")
-        }
+        OutputFormat::Json => serde_json::to_string_pretty(&result_set).unwrap_or_default(),
+        OutputFormat::Raw => result_set
+            .results
+            .iter()
+            .map(|r| r.raw.clone())
+            .collect::<Vec<_>>()
+            .join("\n"),
         OutputFormat::Table => {
             let body = if let Some(ctx) = context_data {
                 format_table_with_context(ctx)
@@ -186,7 +208,8 @@ fn format_output(
 /// Format results as a bordered table string
 fn format_table(result_set: &SearchResultSet) -> String {
     let mut table = Table::new();
-    table.load_preset(comfy_table::presets::UTF8_FULL_CONDENSED)
+    table
+        .load_preset(comfy_table::presets::UTF8_FULL_CONDENSED)
         .set_header(vec![
             Cell::new("TIMESTAMP").fg(Color::DarkCyan),
             Cell::new("LEVEL").fg(Color::Yellow),
@@ -219,7 +242,11 @@ fn format_table(result_set: &SearchResultSet) -> String {
     }
 
     let mut output = format!("{table}");
-    let count_str = if result_set.approximate { format!("~{}", result_set.total_count) } else { result_set.total_count.to_string() };
+    let count_str = if result_set.approximate {
+        format!("~{}", result_set.total_count)
+    } else {
+        result_set.total_count.to_string()
+    };
     output.push_str(&format!(
         "\nShowing {} of {} results ({:.1}ms)",
         result_set.returned_count,
@@ -237,19 +264,31 @@ fn format_compact(result_set: &SearchResultSet) -> String {
         let level = r.level.as_deref().unwrap_or("-");
         let source = shorten_path(&r.source);
         let msg = collapse_multiline(&r.message);
-        lines.push(format!("[{}] [{}] [{}:{}] {}", ts, level, source, r.line_number, msg));
+        lines.push(format!(
+            "[{}] [{}] [{}:{}] {}",
+            ts, level, source, r.line_number, msg
+        ));
     }
     lines.push(format!(
         "\nShowing {} of {} results ({:.1}ms)",
         result_set.returned_count,
-        if result_set.approximate { format!("~{}", result_set.total_count) } else { result_set.total_count.to_string() },
+        if result_set.approximate {
+            format!("~{}", result_set.total_count)
+        } else {
+            result_set.total_count.to_string()
+        },
         result_set.elapsed_ms as f64 / 1000.0
     ));
     lines.join("\n")
 }
 
 /// Format table with context lines for each result
-fn format_table_with_context(data: &[(crate::core::entry::SearchResult, Vec<crate::core::entry::SearchResult>)]) -> String {
+fn format_table_with_context(
+    data: &[(
+        crate::core::entry::SearchResult,
+        Vec<crate::core::entry::SearchResult>,
+    )],
+) -> String {
     use std::collections::HashSet;
     let mut output = String::new();
     let mut seen_ids: HashSet<i64> = data.iter().map(|(r, _)| r.id).collect();
@@ -257,49 +296,68 @@ fn format_table_with_context(data: &[(crate::core::entry::SearchResult, Vec<crat
     for (result, context) in data {
         // Print context lines before the result
         for ctx_line in context {
-            if seen_ids.contains(&ctx_line.id) { continue; }
+            if seen_ids.contains(&ctx_line.id) {
+                continue;
+            }
             seen_ids.insert(ctx_line.id);
             let ts = ctx_line.timestamp.as_deref().unwrap_or("-");
             let level = ctx_line.level.as_deref().unwrap_or("-");
             let source = shorten_path(&ctx_line.source);
             let msg = truncate(&ctx_line.message, 60);
-            output.push_str(&format!("  | {} {} [{}:{}] {}\n", ts, level, source, ctx_line.line_number, msg));
+            output.push_str(&format!(
+                "  | {} {} [{}:{}] {}\n",
+                ts, level, source, ctx_line.line_number, msg
+            ));
         }
         // Print the main result (highlighted)
         let ts = result.timestamp.as_deref().unwrap_or("-");
         let level = result.level.as_deref().unwrap_or("-");
         let source = shorten_path(&result.source);
         let msg = truncate(&result.message, 80);
-        output.push_str(&format!("> {} {} [{}:{}] {}\n", ts, level, source, result.line_number, msg));
+        output.push_str(&format!(
+            "> {} {} [{}:{}] {}\n",
+            ts, level, source, result.line_number, msg
+        ));
     }
 
-    output.push_str(&format!(
-        "\n{} results with context", data.len()
-    ));
+    output.push_str(&format!("\n{} results with context", data.len()));
     output
 }
 
 /// Format compact with context lines for each result
-fn format_compact_with_context(data: &[(crate::core::entry::SearchResult, Vec<crate::core::entry::SearchResult>)]) -> String {
+fn format_compact_with_context(
+    data: &[(
+        crate::core::entry::SearchResult,
+        Vec<crate::core::entry::SearchResult>,
+    )],
+) -> String {
     use std::collections::HashSet;
     let mut lines: Vec<String> = Vec::new();
     let mut seen_ids: HashSet<i64> = data.iter().map(|(r, _)| r.id).collect();
 
     for (result, context) in data {
         for ctx_line in context {
-            if seen_ids.contains(&ctx_line.id) { continue; }
+            if seen_ids.contains(&ctx_line.id) {
+                continue;
+            }
             seen_ids.insert(ctx_line.id);
             let ts = ctx_line.timestamp.as_deref().unwrap_or("-");
             let level = ctx_line.level.as_deref().unwrap_or("-");
             let source = shorten_path(&ctx_line.source);
             let msg = collapse_multiline(&ctx_line.message);
-            lines.push(format!("  | [{}] [{}] [{}:{}] {}", ts, level, source, ctx_line.line_number, msg));
+            lines.push(format!(
+                "  | [{}] [{}] [{}:{}] {}",
+                ts, level, source, ctx_line.line_number, msg
+            ));
         }
         let ts = result.timestamp.as_deref().unwrap_or("-");
         let level = result.level.as_deref().unwrap_or("-");
         let source = shorten_path(&result.source);
         let msg = collapse_multiline(&result.message);
-        lines.push(format!("> [{}] [{}] [{}:{}] {}", ts, level, source, result.line_number, msg));
+        lines.push(format!(
+            "> [{}] [{}] [{}:{}] {}",
+            ts, level, source, result.line_number, msg
+        ));
     }
     lines.push(format!("\n{} results with context", data.len()));
     lines.join("\n")
@@ -308,7 +366,7 @@ fn format_compact_with_context(data: &[(crate::core::entry::SearchResult, Vec<cr
 fn shorten_path(path: &str) -> String {
     let parts: Vec<&str> = path.split('/').collect();
     if parts.len() > 3 {
-        parts[parts.len()-3..].join("/")
+        parts[parts.len() - 3..].join("/")
     } else {
         path.to_string()
     }
@@ -332,8 +390,10 @@ fn collapse_multiline(s: &str) -> String {
 fn apply_max_chars(output: &str, max: usize, total_count: u64) -> String {
     if output.chars().count() > max {
         let truncated: String = output.chars().take(max).collect();
-        format!("{}\n... [已截断，共 {} 条匹配，显示前 {} 字符]",
-            truncated, total_count, max)
+        format!(
+            "{}\n... [已截断，共 {} 条匹配，显示前 {} 字符]",
+            truncated, total_count, max
+        )
     } else {
         output.to_string()
     }
@@ -341,7 +401,9 @@ fn apply_max_chars(output: &str, max: usize, total_count: u64) -> String {
 
 /// Deduplicate results by level + message prefix (first 100 chars).
 /// First occurrence is kept, duplicates are annotated with count.
-fn deduplicate_results(results: Vec<crate::core::entry::SearchResult>) -> Vec<crate::core::entry::SearchResult> {
+fn deduplicate_results(
+    results: Vec<crate::core::entry::SearchResult>,
+) -> Vec<crate::core::entry::SearchResult> {
     use std::collections::HashMap;
 
     let mut seen: HashMap<(String, String), u64> = HashMap::new();
@@ -380,14 +442,24 @@ fn format_summary(summary: &SearchSummary, output: &OutputFormat) -> String {
 
     let mut s = String::new();
     s.push_str("=== Search Summary ===\n");
-    s.push_str(&format!("Total: {} results ({:.1}ms)\n", summary.total_count, summary.elapsed_ms as f64 / 1000.0));
+    s.push_str(&format!(
+        "Total: {} results ({:.1}ms)\n",
+        summary.total_count,
+        summary.elapsed_ms as f64 / 1000.0
+    ));
 
     // Level distribution
     if !summary.level_distribution.is_empty() {
-        let parts: Vec<String> = summary.level_distribution.iter()
+        let parts: Vec<String> = summary
+            .level_distribution
+            .iter()
             .map(|lc| format!("{}: {}", lc.level.to_lowercase(), lc.count))
             .collect();
-        s.push_str(&format!("\n{} | {} total\n", parts.join(" | "), summary.total_count));
+        s.push_str(&format!(
+            "\n{} | {} total\n",
+            parts.join(" | "),
+            summary.total_count
+        ));
     }
 
     // Time range
@@ -435,22 +507,38 @@ fn is_stack_line(raw: &str) -> bool {
 
     // Java patterns — detect leading whitespace + "at ", "Caused by", etc.
     // The raw line may start with tabs or spaces, then "at "
-    if raw.contains("\tat ") || raw.contains("    at ") { return true; }
-    if raw.contains("Caused by:") { return true; }
-    if raw.contains("Suppressed:") { return true; }
-    if raw.trim().ends_with("more") && raw.contains("...") { return true; }
+    if raw.contains("\tat ") || raw.contains("    at ") {
+        return true;
+    }
+    if raw.contains("Caused by:") {
+        return true;
+    }
+    if raw.contains("Suppressed:") {
+        return true;
+    }
+    if raw.trim().ends_with("more") && raw.contains("...") {
+        return true;
+    }
 
     // Python traceback: "  File \"...\", line N"
     if raw.contains("File \"") {
         let t = raw.trim_start();
-        if t.starts_with("File \"") { return true; }
+        if t.starts_with("File \"") {
+            return true;
+        }
     }
     // Python exception headers
-    if trimmed == "Traceback (most recent call last):" { return true; }
+    if trimmed == "Traceback (most recent call last):" {
+        return true;
+    }
 
     // Go patterns
-    if raw.contains("goroutine ") && raw.contains("[running]") { return true; }
-    if raw.contains("created by ") { return true; }
+    if raw.contains("goroutine ") && raw.contains("[running]") {
+        return true;
+    }
+    if raw.contains("created by ") {
+        return true;
+    }
 
     false
 }
@@ -489,12 +577,18 @@ fn extract_exception_class(raw: &str) -> Option<String> {
             let class = &trimmed[..pos];
             // Check it looks like an exception (uppercase, contains Error/Exception/etc.)
             if class.chars().next().map_or(false, |c| c.is_uppercase())
-                && (class.contains("Error") || class.contains("Exception")
-                    || class.contains("ValueError") || class.contains("TypeError")
-                    || class.contains("KeyError") || class.contains("RuntimeError")
-                    || class.contains("AttributeError") || class.contains("ImportError")
-                    || class.contains("IndexError") || class.contains("IOError")
-                    || class.contains("OSError") || class.contains("StopIteration"))
+                && (class.contains("Error")
+                    || class.contains("Exception")
+                    || class.contains("ValueError")
+                    || class.contains("TypeError")
+                    || class.contains("KeyError")
+                    || class.contains("RuntimeError")
+                    || class.contains("AttributeError")
+                    || class.contains("ImportError")
+                    || class.contains("IndexError")
+                    || class.contains("IOError")
+                    || class.contains("OSError")
+                    || class.contains("StopIteration"))
             {
                 return Some(class.to_string());
             }
@@ -507,7 +601,9 @@ fn extract_exception_class(raw: &str) -> Option<String> {
 /// Fold consecutive stack trace lines into their parent result.
 /// Removes stack lines from results and appends a summary to the parent's message.
 fn fold_stack_traces(results: &mut Vec<crate::core::entry::SearchResult>) {
-    if results.is_empty() { return; }
+    if results.is_empty() {
+        return;
+    }
 
     let mut i = 1; // start from second result
     while i < results.len() {
@@ -604,8 +700,7 @@ mod tests {
         assert!(result.contains("已截断"));
     }
 
-    
-// --- Stack trace folding tests ---
+    // --- Stack trace folding tests ---
 
     #[test]
     fn test_is_stack_line_java() {
@@ -613,7 +708,9 @@ mod tests {
         let tab = '\t';
         let line = format!("{}at com.example.Method(Class.java:42)", tab);
         assert!(is_stack_line(&line));
-        assert!(is_stack_line("Caused by: java.lang.NullPointerException: msg"));
+        assert!(is_stack_line(
+            "Caused by: java.lang.NullPointerException: msg"
+        ));
         assert!(is_stack_line("Suppressed: java.io.IOException: err"));
     }
 
@@ -632,7 +729,9 @@ mod tests {
 
     #[test]
     fn test_is_stack_line_not_stack() {
-        assert!(!is_stack_line("2024-01-15 10:23:45 INFO  normal log message"));
+        assert!(!is_stack_line(
+            "2024-01-15 10:23:45 INFO  normal log message"
+        ));
         assert!(!is_stack_line("request processed successfully"));
         assert!(!is_stack_line(""));
     }
@@ -660,27 +759,42 @@ mod tests {
         let mut results = vec![
             SearchResult {
                 file_id: 0,
-                id: 1, source: "test.log".to_string(), line_number: 1, byte_offset: 0,
+                id: 1,
+                source: "test.log".to_string(),
+                line_number: 1,
+                byte_offset: 0,
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
-                level: Some("ERROR".to_string()), thread: None, logger: None,
+                level: Some("ERROR".to_string()),
+                thread: None,
+                logger: None,
                 message: "NullPointerException: something went wrong".to_string(),
 
                 raw: "Exception NullPointerException: something went wrong".to_string(),
             },
             SearchResult {
                 file_id: 0,
-                id: 2, source: "test.log".to_string(), line_number: 2, byte_offset: 100,
+                id: 2,
+                source: "test.log".to_string(),
+                line_number: 2,
+                byte_offset: 100,
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
-                level: Some("ERROR".to_string()), thread: None, logger: None,
+                level: Some("ERROR".to_string()),
+                thread: None,
+                logger: None,
                 message: format!("{}at com.example.App.run(App.java:42)", tab),
 
                 raw: format!("{}at com.example.App.run(App.java:42)", tab),
             },
             SearchResult {
                 file_id: 0,
-                id: 3, source: "test.log".to_string(), line_number: 3, byte_offset: 200,
+                id: 3,
+                source: "test.log".to_string(),
+                line_number: 3,
+                byte_offset: 200,
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
-                level: Some("ERROR".to_string()), thread: None, logger: None,
+                level: Some("ERROR".to_string()),
+                thread: None,
+                logger: None,
                 message: format!("{}at com.example.App.main(App.java:10)", tab),
 
                 raw: format!("{}at com.example.App.main(App.java:10)", tab),
@@ -697,18 +811,28 @@ mod tests {
         let mut results = vec![
             SearchResult {
                 file_id: 0,
-                id: 1, source: "test.log".to_string(), line_number: 1, byte_offset: 0,
+                id: 1,
+                source: "test.log".to_string(),
+                line_number: 1,
+                byte_offset: 0,
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
-                level: Some("INFO".to_string()), thread: None, logger: None,
+                level: Some("INFO".to_string()),
+                thread: None,
+                logger: None,
                 message: "normal log".to_string(),
 
                 raw: "2024-01-01 INFO normal log".to_string(),
             },
             SearchResult {
                 file_id: 0,
-                id: 2, source: "test.log".to_string(), line_number: 2, byte_offset: 100,
+                id: 2,
+                source: "test.log".to_string(),
+                line_number: 2,
+                byte_offset: 100,
                 timestamp: Some("2024-01-01T00:00:00".to_string()),
-                level: Some("INFO".to_string()), thread: None, logger: None,
+                level: Some("INFO".to_string()),
+                thread: None,
+                logger: None,
                 message: "another normal log".to_string(),
 
                 raw: "2024-01-01 INFO another normal log".to_string(),
@@ -752,12 +876,32 @@ mod tests {
     fn test_deduplicate_no_dupes() {
         use crate::core::entry::SearchResult;
         let results = vec![
-            SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
-                timestamp:None, level:Some("INFO".into()), thread:None, logger:None,
-                message:"msg one".into(), raw:"raw1".into() },
-            SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
-                timestamp:None, level:Some("WARN".into()), thread:None, logger:None,
-                message:"msg two".into(), raw:"raw2".into() },
+            SearchResult {
+                file_id: 0,
+                id: 1,
+                source: "a".into(),
+                line_number: 1,
+                byte_offset: 0,
+                timestamp: None,
+                level: Some("INFO".into()),
+                thread: None,
+                logger: None,
+                message: "msg one".into(),
+                raw: "raw1".into(),
+            },
+            SearchResult {
+                file_id: 0,
+                id: 2,
+                source: "a".into(),
+                line_number: 2,
+                byte_offset: 10,
+                timestamp: None,
+                level: Some("WARN".into()),
+                thread: None,
+                logger: None,
+                message: "msg two".into(),
+                raw: "raw2".into(),
+            },
         ];
         let deduped = deduplicate_results(results);
         assert_eq!(deduped.len(), 2);
@@ -766,15 +910,45 @@ mod tests {
     fn test_deduplicate_with_dupes() {
         use crate::core::entry::SearchResult;
         let results = vec![
-            SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
-                timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), raw:"raw1".into() },
-            SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
-                timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), raw:"raw2".into() },
-            SearchResult { file_id:0, id:3, source:"a".into(), line_number:3, byte_offset:20,
-                timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same error".into(), raw:"raw3".into() },
+            SearchResult {
+                file_id: 0,
+                id: 1,
+                source: "a".into(),
+                line_number: 1,
+                byte_offset: 0,
+                timestamp: None,
+                level: Some("ERROR".into()),
+                thread: None,
+                logger: None,
+                message: "same error".into(),
+                raw: "raw1".into(),
+            },
+            SearchResult {
+                file_id: 0,
+                id: 2,
+                source: "a".into(),
+                line_number: 2,
+                byte_offset: 10,
+                timestamp: None,
+                level: Some("ERROR".into()),
+                thread: None,
+                logger: None,
+                message: "same error".into(),
+                raw: "raw2".into(),
+            },
+            SearchResult {
+                file_id: 0,
+                id: 3,
+                source: "a".into(),
+                line_number: 3,
+                byte_offset: 20,
+                timestamp: None,
+                level: Some("ERROR".into()),
+                thread: None,
+                logger: None,
+                message: "same error".into(),
+                raw: "raw3".into(),
+            },
         ];
         let deduped = deduplicate_results(results);
         assert_eq!(deduped.len(), 1);
@@ -784,12 +958,32 @@ mod tests {
     fn test_deduplicate_different_levels() {
         use crate::core::entry::SearchResult;
         let results = vec![
-            SearchResult { file_id:0, id:1, source:"a".into(), line_number:1, byte_offset:0,
-                timestamp:None, level:Some("INFO".into()), thread:None, logger:None,
-                message:"same msg".into(), raw:"raw1".into() },
-            SearchResult { file_id:0, id:2, source:"a".into(), line_number:2, byte_offset:10,
-                timestamp:None, level:Some("ERROR".into()), thread:None, logger:None,
-                message:"same msg".into(), raw:"raw2".into() },
+            SearchResult {
+                file_id: 0,
+                id: 1,
+                source: "a".into(),
+                line_number: 1,
+                byte_offset: 0,
+                timestamp: None,
+                level: Some("INFO".into()),
+                thread: None,
+                logger: None,
+                message: "same msg".into(),
+                raw: "raw1".into(),
+            },
+            SearchResult {
+                file_id: 0,
+                id: 2,
+                source: "a".into(),
+                line_number: 2,
+                byte_offset: 10,
+                timestamp: None,
+                level: Some("ERROR".into()),
+                thread: None,
+                logger: None,
+                message: "same msg".into(),
+                raw: "raw2".into(),
+            },
         ];
         let deduped = deduplicate_results(results);
         // Different levels → not duplicates

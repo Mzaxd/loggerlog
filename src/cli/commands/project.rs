@@ -5,7 +5,11 @@ use anyhow::Result;
 
 pub fn run(action: ProjectAction, config_path: Option<&str>) -> Result<()> {
     match action {
-        ProjectAction::Add { name, path, recursive } => add_project(&name, &path, recursive, config_path),
+        ProjectAction::Add {
+            name,
+            path,
+            recursive,
+        } => add_project(&name, &path, recursive, config_path),
         ProjectAction::Remove { name } => remove_project(&name, config_path),
         ProjectAction::List => list_projects(config_path),
     }
@@ -38,7 +42,11 @@ fn add_project(name: &str, path: &str, recursive: bool, config_path: Option<&str
             }
             modules.sort();
             if !modules.is_empty() {
-                println!("  Detected modules ({}): {}", modules.len(), modules.join(", "));
+                println!(
+                    "  Detected modules ({}): {}",
+                    modules.len(),
+                    modules.join(", ")
+                );
             } else {
                 println!("  No subdirectories detected as modules.");
             }
@@ -95,7 +103,10 @@ fn list_projects(config_path: Option<&str>) -> Result<()> {
         } else {
             project.path.clone()
         };
-        println!("{:<20} {:<50} {:<15}", project.name, path_short, modules_str);
+        println!(
+            "{:<20} {:<50} {:<15}",
+            project.name, path_short, modules_str
+        );
 
         // Show modules if any
         if !modules.is_empty() {

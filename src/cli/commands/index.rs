@@ -31,7 +31,10 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
     let max_file_size = match config::parse_size(&cfg.general.max_file_size) {
         Some(size) => size,
         None => {
-            eprintln!("Warning: invalid max_file_size '{}', using 2GB default", cfg.general.max_file_size);
+            eprintln!(
+                "Warning: invalid max_file_size '{}', using 2GB default",
+                cfg.general.max_file_size
+            );
             2u64 * 1024 * 1024 * 1024
         }
     };
@@ -49,7 +52,11 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
 
     for file in &discovered {
         if file.size > max_file_size && !file.is_rotated {
-            println!("  Skipping (too large, {}): {}", format_size(file.size), file.path.display());
+            println!(
+                "  Skipping (too large, {}): {}",
+                format_size(file.size),
+                file.path.display()
+            );
             continue;
         }
         let file_path = file.path.to_string_lossy().to_string();
@@ -88,7 +95,10 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
+                (
+                    create_raw_entries(&content, job.file_id, 0, 0),
+                    fmt.to_string(),
+                )
             } else {
                 let existing = existing_files.iter().find(|f| f.path == job.file_path);
                 let current_byte_offset = existing.map(|f| f.byte_offset).unwrap_or(0);
@@ -114,7 +124,10 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
                     byte_count = line_end;
                 }
                 let new_content = kept_lines.join("\n");
-                (create_raw_entries(&new_content, job.file_id, actual_start_byte, skipped_lines), fmt.to_string())
+                (
+                    create_raw_entries(&new_content, job.file_id, actual_start_byte, skipped_lines),
+                    fmt.to_string(),
+                )
             };
 
             Ok(JobResult {
@@ -139,25 +152,47 @@ fn update_index(config_path: Option<&str>) -> Result<()> {
         }
 
         if r.is_compressed {
-            idx.update_file(r.file_id, entry_count as i64, entry_count as i64, entry_count as i64, &r.format_str)?;
+            idx.update_file(
+                r.file_id,
+                entry_count as i64,
+                entry_count as i64,
+                entry_count as i64,
+                &r.format_str,
+            )?;
         } else {
-            let existing = existing_files.iter().find(|f| f.path == r.display_path.to_string_lossy());
+            let existing = existing_files
+                .iter()
+                .find(|f| f.path == r.display_path.to_string_lossy());
             let prior_lines = existing.map(|f| f.line_count).unwrap_or(0);
             let path_str = r.display_path.to_string_lossy().to_string();
-            let file_size = discovered.iter()
+            let file_size = discovered
+                .iter()
                 .find(|d| d.path.to_string_lossy() == path_str)
                 .map(|d| d.size as i64)
                 .unwrap_or(0);
-            idx.update_file(r.file_id, file_size, file_size, prior_lines + entry_count as i64, &r.format_str)?;
+            idx.update_file(
+                r.file_id,
+                file_size,
+                file_size,
+                prior_lines + entry_count as i64,
+                &r.format_str,
+            )?;
         }
 
         files_indexed += 1;
-        println!("  Indexed: {} ({} entries, format={}{})",
-            r.display_path.display(), entry_count, r.format_str,
-            if r.is_compressed { ", compressed" } else { "" });
+        println!(
+            "  Indexed: {} ({} entries, format={}{})",
+            r.display_path.display(),
+            entry_count,
+            r.format_str,
+            if r.is_compressed { ", compressed" } else { "" }
+        );
     }
 
-    println!("\nDone. {} files indexed, {} new entries.", files_indexed, total_new_entries);
+    println!(
+        "\nDone. {} files indexed, {} new entries.",
+        files_indexed, total_new_entries
+    );
 
     if !cfg.projects.projects.is_empty() {
         println!("Syncing project mappings...");
@@ -210,15 +245,19 @@ fn show_stats(config_path: Option<&str>) -> Result<()> {
     println!();
 
     if !files.is_empty() {
-        println!("{:<50} {:>10} {:>10} {:>8}", "File", "Entries", "Size", "Format");
+        println!(
+            "{:<50} {:>10} {:>10} {:>8}",
+            "File", "Entries", "Size", "Format"
+        );
         println!("{}", "-".repeat(82));
         for f in &files {
             let short_path = if f.path.len() > 47 {
-                format!("...{}", &f.path[f.path.len()-47..])
+                format!("...{}", &f.path[f.path.len() - 47..])
             } else {
                 f.path.clone()
             };
-            println!("{:<50} {:>10} {:>8} {:>8}",
+            println!(
+                "{:<50} {:>10} {:>8} {:>8}",
                 short_path,
                 f.line_count,
                 format_size(f.size as u64),
@@ -264,7 +303,10 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
     let max_file_size = match config::parse_size(&cfg.general.max_file_size) {
         Some(size) => size,
         None => {
-            eprintln!("Warning: invalid max_file_size '{}', using 2GB default", cfg.general.max_file_size);
+            eprintln!(
+                "Warning: invalid max_file_size '{}', using 2GB default",
+                cfg.general.max_file_size
+            );
             2u64 * 1024 * 1024 * 1024
         }
     };
@@ -277,8 +319,8 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
         is_compressed: bool,
         existing_line_count: i64,
         stored_offset: i64,
-        needs_clear: bool,       // true if rotation detected (size shrunk)
-        needs_full_read: bool,   // true for compressed, rotation fallback, or seek failure
+        needs_clear: bool,     // true if rotation detected (size shrunk)
+        needs_full_read: bool, // true for compressed, rotation fallback, or seek failure
     }
 
     let mut result = SyncResult::default();
@@ -298,7 +340,9 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
             let existing = idx.get_file_by_path(&file_path)?;
             let stored_line_count = existing.as_ref().map(|f| f.line_count).unwrap_or(0);
             jobs.push(IncrJob {
-                file_path, file_id, file_size,
+                file_path,
+                file_id,
+                file_size,
                 is_compressed: true,
                 existing_line_count: stored_line_count,
                 stored_offset: 0,
@@ -322,7 +366,9 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
         }
 
         jobs.push(IncrJob {
-            file_path, file_id, file_size,
+            file_path,
+            file_id,
+            file_size,
             is_compressed: false,
             existing_line_count: stored_line_count,
             stored_offset,
@@ -352,38 +398,65 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
                 let content = encoding::read_gz_to_utf8(&job.file_path)?;
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
+                (
+                    create_raw_entries(&content, job.file_id, 0, 0),
+                    fmt.to_string(),
+                )
             } else if job.needs_full_read {
                 let content = encoding::read_file_to_utf8(&job.file_path, None);
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, 0, 0), fmt.to_string())
+                (
+                    create_raw_entries(&content, job.file_id, 0, 0),
+                    fmt.to_string(),
+                )
             } else {
                 let (content, start_byte, start_line, needs_clear_fb) =
-                    match encoding::read_file_from_offset(&job.file_path, job.stored_offset as u64) {
-                        Ok(c) => (c, job.stored_offset as u64, job.existing_line_count as u64, false),
+                    match encoding::read_file_from_offset(&job.file_path, job.stored_offset as u64)
+                    {
+                        Ok(c) => (
+                            c,
+                            job.stored_offset as u64,
+                            job.existing_line_count as u64,
+                            false,
+                        ),
                         Err(_) => {
-                            eprintln!("Warning: seek failed for {}, re-indexing from start", job.file_path);
-                            (encoding::read_file_to_utf8(&job.file_path, None), 0u64, 0u64, true)
+                            eprintln!(
+                                "Warning: seek failed for {}, re-indexing from start",
+                                job.file_path
+                            );
+                            (
+                                encoding::read_file_to_utf8(&job.file_path, None),
+                                0u64,
+                                0u64,
+                                true,
+                            )
                         }
                     };
                 seek_fallback_needs_clear = needs_clear_fb;
                 let content = content;
                 if content.trim().is_empty() {
                     return Ok(IncrResult {
-                        file_id: job.file_id, file_size: job.file_size,
-                        entries: Vec::new(), format_str: "unknown".into(),
-                        is_compressed: false, needs_clear: job.needs_clear,
+                        file_id: job.file_id,
+                        file_size: job.file_size,
+                        entries: Vec::new(),
+                        format_str: "unknown".into(),
+                        is_compressed: false,
+                        needs_clear: job.needs_clear,
                         existing_line_count: 0,
                     });
                 }
                 let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
                 let fmt = scanner::detect_format_hint(&lines);
-                (create_raw_entries(&content, job.file_id, start_byte, start_line), fmt.to_string())
+                (
+                    create_raw_entries(&content, job.file_id, start_byte, start_line),
+                    fmt.to_string(),
+                )
             };
 
             Ok(IncrResult {
-                file_id: job.file_id, file_size: job.file_size,
+                file_id: job.file_id,
+                file_size: job.file_size,
                 entries,
                 format_str,
                 is_compressed: job.is_compressed,
@@ -413,14 +486,26 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
                 idx.insert_entries(&r.entries)?;
                 result.new_entries += r.entries.len() as u64;
             }
-            idx.update_file(r.file_id, entry_count, entry_count, entry_count, &r.format_str)?;
+            idx.update_file(
+                r.file_id,
+                entry_count,
+                entry_count,
+                entry_count,
+                &r.format_str,
+            )?;
         } else {
             if !r.entries.is_empty() {
                 idx.insert_entries(&r.entries)?;
                 result.new_entries += r.entries.len() as u64;
             }
             let line_count = r.existing_line_count + entry_count;
-            idx.update_file(r.file_id, r.file_size, r.file_size, line_count, &r.format_str)?;
+            idx.update_file(
+                r.file_id,
+                r.file_size,
+                r.file_size,
+                line_count,
+                &r.format_str,
+            )?;
         }
         result.files_updated += 1;
     }
@@ -436,7 +521,12 @@ pub fn incremental_sync(config_path: Option<&str>) -> Result<SyncResult> {
 /// Create raw-only LogEntry objects from file content, no parsing.
 /// `start_byte_offset` is the byte position of the first byte in `content`.
 /// `start_line_number` is the 1-based line number of the first line in `content`.
-fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64, start_line_number: u64) -> Vec<LogEntry> {
+fn create_raw_entries(
+    content: &str,
+    file_id: i64,
+    start_byte_offset: u64,
+    start_line_number: u64,
+) -> Vec<LogEntry> {
     let mut entries = Vec::new();
     let mut byte_offset = start_byte_offset;
     let mut line_number = start_line_number;
@@ -445,7 +535,11 @@ fn create_raw_entries(content: &str, file_id: i64, start_byte_offset: u64, start
     for (i, line) in lines.iter().enumerate() {
         line_number += 1;
         // Last line without trailing newline: don't add +1
-        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline { 0 } else { 1 };
+        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline {
+            0
+        } else {
+            1
+        };
         let line_bytes = line.len() as u64 + newline_bytes;
         entries.push(LogEntry {
             id: None,
@@ -464,7 +558,13 @@ mod tests {
     use super::*;
 
     fn make_entry(file_id: i64, line_number: u64, byte_offset: u64, raw: &str) -> LogEntry {
-        LogEntry { id: None, file_id, line_number, byte_offset, raw: raw.to_string() }
+        LogEntry {
+            id: None,
+            file_id,
+            line_number,
+            byte_offset,
+            raw: raw.to_string(),
+        }
     }
 
     #[test]

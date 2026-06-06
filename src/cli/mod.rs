@@ -21,7 +21,7 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Commands {
-        /// Search indexed log entries
+    /// Search indexed log entries
     Search {
         /// Search query (FTS5 syntax or regex: prefix)
         query: String,
@@ -235,17 +235,45 @@ pub fn run() {
             no_sync,
         }) => {
             let output = global_output.unwrap_or(output);
-            if let Err(e) = commands::search::run(&query, &level, source.as_deref(),
-                project.as_deref(), module.as_deref(),
-                after.as_deref(), before.as_deref(), thread.as_deref(),
-                regex, limit, context, max_chars, exclude, unique, output_file, summary, &output, config_path.as_deref(), no_sync) {
+            if let Err(e) = commands::search::run(
+                &query,
+                &level,
+                source.as_deref(),
+                project.as_deref(),
+                module.as_deref(),
+                after.as_deref(),
+                before.as_deref(),
+                thread.as_deref(),
+                regex,
+                limit,
+                context,
+                max_chars,
+                exclude,
+                unique,
+                output_file,
+                summary,
+                &output,
+                config_path.as_deref(),
+                no_sync,
+            ) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
         }
-        Some(Commands::Tail { source, level, filter, output }) => {
+        Some(Commands::Tail {
+            source,
+            level,
+            filter,
+            output,
+        }) => {
             let output = global_output.unwrap_or(output);
-            if let Err(e) = commands::tail::run(source.as_deref(), &level, filter.as_deref(), &output, config_path.as_deref()) {
+            if let Err(e) = commands::tail::run(
+                source.as_deref(),
+                &level,
+                filter.as_deref(),
+                &output,
+                config_path.as_deref(),
+            ) {
                 eprintln!("Error: {}", e);
                 std::process::exit(1);
             }

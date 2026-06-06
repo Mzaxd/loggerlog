@@ -223,7 +223,12 @@ pub fn parse_size(size_str: &str) -> Option<u64> {
 /// Add a project to the config
 pub fn add_project(config: &mut Config, name: &str, path: &str) -> bool {
     // Check if name or path already exists
-    if config.projects.projects.iter().any(|p| p.name == name || p.path == path) {
+    if config
+        .projects
+        .projects
+        .iter()
+        .any(|p| p.name == name || p.path == path)
+    {
         return false;
     }
     config.projects.projects.push(Project {
@@ -422,7 +427,10 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     fn tmp_config_path(name: &str) -> String {
-        std::env::temp_dir().join(name).to_string_lossy().to_string()
+        std::env::temp_dir()
+            .join(name)
+            .to_string_lossy()
+            .to_string()
     }
 
     #[test]
@@ -468,7 +476,10 @@ mod tests {
         fs::write(&path, "{{{{invalid toml!!!").expect("write should succeed");
 
         let result = load(Some(&path));
-        assert!(result.is_err(), "loading invalid TOML should return an error");
+        assert!(
+            result.is_err(),
+            "loading invalid TOML should return an error"
+        );
 
         let _ = fs::remove_file(&path);
     }

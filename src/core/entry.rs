@@ -40,8 +40,7 @@ impl SearchResult {
         raw: &str,
     ) -> Self {
         let level = crate::core::scanner::extract_level(raw);
-        let timestamp =
-            crate::core::scanner::extract_timestamp(raw).map(|dt| dt.to_rfc3339());
+        let timestamp = crate::core::scanner::extract_timestamp(raw).map(|dt| dt.to_rfc3339());
         let thread = crate::core::scanner::extract_thread(raw);
         let logger = crate::core::scanner::extract_logger(raw);
         let message = crate::core::scanner::extract_message(raw);
@@ -123,7 +122,8 @@ mod tests {
 
     #[test]
     fn test_search_result_from_raw_json() {
-        let raw = r#"{"level":"error","message":"connection failed","timestamp":"2024-01-15T10:00:00Z"}"#;
+        let raw =
+            r#"{"level":"error","message":"connection failed","timestamp":"2024-01-15T10:00:00Z"}"#;
         let result = SearchResult::from_raw(2, 20, "app.json.log".to_string(), 10, 512, raw);
 
         // JSON "error" is normalized to uppercase by scanner

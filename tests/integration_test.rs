@@ -35,7 +35,11 @@ fn create_raw_entries(content: &str, file_id: i64, start_offset: u64) -> Vec<Log
     let has_trailing_newline = content.ends_with('\n');
     for (i, line) in lines.iter().enumerate() {
         line_number += 1;
-        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline { 0 } else { 1 };
+        let newline_bytes = if i == lines.len() - 1 && !has_trailing_newline {
+            0
+        } else {
+            1
+        };
         entries.push(LogEntry {
             id: None,
             file_id,
@@ -65,16 +69,31 @@ fn load_data_lines(file_path: &str) -> Vec<String> {
 fn assert_scanner_line(raw: &str, exp: &JsonValue, context: &str) {
     if let Some(lvl) = exp["level"].as_str() {
         let actual = scanner::extract_level(raw);
-        assert_eq!(actual.as_deref(), Some(lvl), "{}: level mismatch (got {:?})", context, actual);
+        assert_eq!(
+            actual.as_deref(),
+            Some(lvl),
+            "{}: level mismatch (got {:?})",
+            context,
+            actual
+        );
     } else if exp["level"].is_null() {
         let actual = scanner::extract_level(raw);
-        assert!(actual.is_none(), "{}: level should be None, got {:?}", context, actual);
+        assert!(
+            actual.is_none(),
+            "{}: level should be None, got {:?}",
+            context,
+            actual
+        );
     }
 
     if let Some(th) = exp["thread"].as_str() {
         if th.is_empty() {
             let actual = scanner::extract_thread(raw);
-            assert!(actual.is_none() || actual.as_deref() == Some(""), "{}: thread should be None/empty", context);
+            assert!(
+                actual.is_none() || actual.as_deref() == Some(""),
+                "{}: thread should be None/empty",
+                context
+            );
         } else {
             let actual = scanner::extract_thread(raw);
             assert_eq!(actual.as_deref(), Some(th), "{}: thread mismatch", context);
@@ -84,7 +103,11 @@ fn assert_scanner_line(raw: &str, exp: &JsonValue, context: &str) {
     if let Some(lg) = exp["logger"].as_str() {
         if lg.is_empty() {
             let actual = scanner::extract_logger(raw);
-            assert!(actual.is_none() || actual.as_deref() == Some(""), "{}: logger should be None/empty", context);
+            assert!(
+                actual.is_none() || actual.as_deref() == Some(""),
+                "{}: logger should be None/empty",
+                context
+            );
         } else {
             let actual = scanner::extract_logger(raw);
             assert_eq!(actual.as_deref(), Some(lg), "{}: logger mismatch", context);
@@ -125,7 +148,10 @@ fn test_scanner_for_fixtures(dir: &str) {
                         // Empty message — can't match by content, use index
                         lines.get(idx).map(|s| s.as_str())
                     } else {
-                        match lines.iter().find(|l| l.contains(msg) || scanner::extract_message(l) == msg) {
+                        match lines
+                            .iter()
+                            .find(|l| l.contains(msg) || scanner::extract_message(l) == msg)
+                        {
                             Some(val) => Some(val.as_str()),
                             None => lines.get(idx).map(|s| s.as_str()),
                         }
@@ -141,9 +167,10 @@ fn test_scanner_for_fixtures(dir: &str) {
                     }
                 } else if let Some(level) = exp_level {
                     // Match by level alone (for entries with null/missing message and no thread)
-                    match lines.iter().find(|l| {
-                        scanner::extract_level(l).as_deref() == Some(level)
-                    }) {
+                    match lines
+                        .iter()
+                        .find(|l| scanner::extract_level(l).as_deref() == Some(level))
+                    {
                         Some(val) => Some(val.as_str()),
                         None => lines.get(idx).map(|s| s.as_str()),
                     }
@@ -199,7 +226,11 @@ fn test_scanner_plain() {
         for line in &lines {
             // Plain lines should always produce a non-empty message
             let msg = scanner::extract_message(line);
-            assert!(!msg.is_empty(), "{}: line should have non-empty message", filename);
+            assert!(
+                !msg.is_empty(),
+                "{}: line should have non-empty message",
+                filename
+            );
         }
     }
 }
@@ -237,7 +268,14 @@ fn build_search_index() -> loggerlog::core::index::IndexManager {
         let _format_str = scanner::detect_format_hint(&lines);
         let entries = create_raw_entries(&content, file_id, 0);
         idx.insert_entries(&entries).unwrap();
-        idx.update_file(file_id, entries.len() as i64, entries.len() as i64, entries.len() as i64, _format_str).unwrap();
+        idx.update_file(
+            file_id,
+            entries.len() as i64,
+            entries.len() as i64,
+            entries.len() as i64,
+            _format_str,
+        )
+        .unwrap();
     }
     idx
 }
@@ -377,7 +415,9 @@ fn test_e2e_real_world_json() {
     idx.insert_entries(&entries).unwrap();
 
     // JSON lines should have extractable levels via scanner
-    let has_levels = entries.iter().any(|e| scanner::extract_level(&e.raw).is_some());
+    let has_levels = entries
+        .iter()
+        .any(|e| scanner::extract_level(&e.raw).is_some());
     assert!(has_levels, "JSON fixtures should have extractable levels");
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -401,7 +441,14 @@ fn test_e2e_full_pipeline() {
     let entries = create_raw_entries(&content, file_id, 0);
     assert!(entries.len() > 0, "fts_test.log should produce entries");
     idx.insert_entries(&entries).unwrap();
-    idx.update_file(file_id, entries.len() as i64, entries.len() as i64, entries.len() as i64, &format_str).unwrap();
+    idx.update_file(
+        file_id,
+        entries.len() as i64,
+        entries.len() as i64,
+        entries.len() as i64,
+        &format_str,
+    )
+    .unwrap();
 
     // Search for "database" via FTS
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -410,7 +457,10 @@ fn test_e2e_full_pipeline() {
     q.fts_query = Some("database".to_string());
     let rs = engine.search(&q).unwrap();
 
-    assert!(rs.total_count > 0, "FTS search for 'database' should find results");
+    assert!(
+        rs.total_count > 0,
+        "FTS search for 'database' should find results"
+    );
     assert!(!rs.results.is_empty());
 
     // Verify results have correct fields
@@ -420,7 +470,10 @@ fn test_e2e_full_pipeline() {
         assert!(r.line_number > 0, "result line_number should be positive");
         assert!(!r.raw.is_empty(), "result raw should not be empty");
         // Since fts_test.log uses log4j format, level should be extractable
-        assert!(r.level.is_some(), "log4j lines should have extractable level");
+        assert!(
+            r.level.is_some(),
+            "log4j lines should have extractable level"
+        );
     }
 }
 
@@ -460,7 +513,8 @@ fn test_e2e_project_scoped_search() {
         formats: vec!["auto".to_string()],
         encoding: "auto".to_string(),
         exclude_patterns: vec![],
-    }]).unwrap();
+    }])
+    .unwrap();
 
     // Search scoped to the project
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -470,10 +524,16 @@ fn test_e2e_project_scoped_search() {
     let rs = engine.search(&q).unwrap();
 
     // Should find only the 2 entries from within the project
-    assert_eq!(rs.total_count, 2, "project-scoped search should return only project files");
+    assert_eq!(
+        rs.total_count, 2,
+        "project-scoped search should return only project files"
+    );
     for r in &rs.results {
-        assert!(r.source.starts_with("/data/testproj"),
-            "result source '{}' should be under project path", r.source);
+        assert!(
+            r.source.starts_with("/data/testproj"),
+            "result source '{}' should be under project path",
+            r.source
+        );
     }
 
     // Search without project filter should find all 3 entries
@@ -518,7 +578,8 @@ fn test_e2e_module_search() {
         formats: vec!["auto".to_string()],
         encoding: "auto".to_string(),
         exclude_patterns: vec![],
-    }]).unwrap();
+    }])
+    .unwrap();
 
     // Search with module="auth"
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -527,12 +588,22 @@ fn test_e2e_module_search() {
     q.module = Some("auth".to_string());
     let rs = engine.search(&q).unwrap();
 
-    assert_eq!(rs.total_count, 2, "module='auth' should find only auth files (got {})", rs.total_count);
+    assert_eq!(
+        rs.total_count, 2,
+        "module='auth' should find only auth files (got {})",
+        rs.total_count
+    );
     for r in &rs.results {
-        assert!(r.source.contains("auth"),
-            "result source '{}' should contain 'auth'", r.source);
-        assert!(!r.source.contains("billing"),
-            "result source '{}' should not contain 'billing'", r.source);
+        assert!(
+            r.source.contains("auth"),
+            "result source '{}' should contain 'auth'",
+            r.source
+        );
+        assert!(
+            !r.source.contains("billing"),
+            "result source '{}' should not contain 'billing'",
+            r.source
+        );
     }
 
     // Search with module="billing" should find only the billing file
@@ -540,7 +611,10 @@ fn test_e2e_module_search() {
     q2.limit = 100;
     q2.module = Some("billing".to_string());
     let rs2 = engine.search(&q2).unwrap();
-    assert_eq!(rs2.total_count, 1, "module='billing' should find exactly 1 entry");
+    assert_eq!(
+        rs2.total_count, 1,
+        "module='billing' should find exactly 1 entry"
+    );
 
     // Search without module filter should find all 3
     let mut q3 = loggerlog::core::entry::SearchQuery::default();
@@ -560,15 +634,30 @@ fn test_e2e_time_range_search() {
     let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let format_str = scanner::detect_format_hint(&lines);
     // Filter out comment and empty lines, then build entries from data-only content
-    let data_lines: Vec<String> = lines.iter()
-        .filter(|l| { let t = l.trim(); !t.is_empty() && !t.starts_with('#') })
+    let data_lines: Vec<String> = lines
+        .iter()
+        .filter(|l| {
+            let t = l.trim();
+            !t.is_empty() && !t.starts_with('#')
+        })
         .cloned()
         .collect();
     let data_content = data_lines.join("\n");
     let entries = create_raw_entries(&data_content, file_id, 0);
-    assert_eq!(entries.len(), 15, "time_range.log should have 15 data lines");
+    assert_eq!(
+        entries.len(),
+        15,
+        "time_range.log should have 15 data lines"
+    );
     idx.insert_entries(&entries).unwrap();
-    idx.update_file(file_id, entries.len() as i64, entries.len() as i64, entries.len() as i64, &format_str).unwrap();
+    idx.update_file(
+        file_id,
+        entries.len() as i64,
+        entries.len() as i64,
+        entries.len() as i64,
+        &format_str,
+    )
+    .unwrap();
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
 
@@ -594,8 +683,11 @@ fn test_e2e_time_range_search() {
     // Should find exactly the 5 entries from 2024-01-02
     assert_eq!(rs.total_count, 5, "should find exactly 5 entries for Jan 2");
     for r in &rs.results {
-        assert!(r.raw.contains("2024-01-02"),
-            "result '{}' should be from 2024-01-02", r.raw);
+        assert!(
+            r.raw.contains("2024-01-02"),
+            "result '{}' should be from 2024-01-02",
+            r.raw
+        );
     }
 
     // Search for entries on 2024-01-01 only
@@ -616,10 +708,16 @@ fn test_e2e_time_range_search() {
             .and_utc(),
     );
     let rs2 = engine.search(&q2).unwrap();
-    assert_eq!(rs2.total_count, 5, "should find exactly 5 entries for Jan 1");
+    assert_eq!(
+        rs2.total_count, 5,
+        "should find exactly 5 entries for Jan 1"
+    );
     for r in &rs2.results {
-        assert!(r.raw.contains("2024-01-01"),
-            "result '{}' should be from 2024-01-01", r.raw);
+        assert!(
+            r.raw.contains("2024-01-01"),
+            "result '{}' should be from 2024-01-01",
+            r.raw
+        );
     }
 
     // Search entire range (all 3 days)
@@ -640,7 +738,10 @@ fn test_e2e_time_range_search() {
             .and_utc(),
     );
     let rs3 = engine.search(&q3).unwrap();
-    assert_eq!(rs3.total_count, 15, "should find all 15 entries across 3 days");
+    assert_eq!(
+        rs3.total_count, 15,
+        "should find all 15 entries across 3 days"
+    );
 }
 
 // ── I-05: Mixed format index search ────────────────────────────────────
@@ -656,7 +757,14 @@ fn test_e2e_mixed_format_index_search() {
     let entries = create_raw_entries(&content, file_id, 0);
     assert!(entries.len() > 0, "mixed fixture should produce entries");
     idx.insert_entries(&entries).unwrap();
-    idx.update_file(file_id, entries.len() as i64, entries.len() as i64, entries.len() as i64, &format_str).unwrap();
+    idx.update_file(
+        file_id,
+        entries.len() as i64,
+        entries.len() as i64,
+        entries.len() as i64,
+        &format_str,
+    )
+    .unwrap();
 
     // Search for ERROR — the mixed file has at least one ERROR line
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -664,7 +772,10 @@ fn test_e2e_mixed_format_index_search() {
     q.limit = 100;
     q.fts_query = Some("ERROR".to_string());
     let rs = engine.search(&q).unwrap();
-    assert!(rs.total_count > 0, "FTS search for 'ERROR' should find results in mixed file");
+    assert!(
+        rs.total_count > 0,
+        "FTS search for 'ERROR' should find results in mixed file"
+    );
 }
 
 // ── I-06: Incremental index ─────────────────────────────────────────────
@@ -680,8 +791,12 @@ fn test_e2e_incremental_index() {
     let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let format_str = scanner::detect_format_hint(&lines);
     // Filter out comment and empty lines, matching the actual data content
-    let data_lines: Vec<String> = lines.iter()
-        .filter(|l| { let t = l.trim(); !t.is_empty() && !t.starts_with('#') })
+    let data_lines: Vec<String> = lines
+        .iter()
+        .filter(|l| {
+            let t = l.trim();
+            !t.is_empty() && !t.starts_with('#')
+        })
         .cloned()
         .collect();
     let data_content = data_lines.join("\n");
@@ -689,18 +804,33 @@ fn test_e2e_incremental_index() {
     let initial_count = entries.len();
     assert!(initial_count > 0, "01_initial.log should produce entries");
     idx.insert_entries(&entries).unwrap();
-    idx.update_file(file_id, initial_count as i64, initial_count as i64, initial_count as i64, &format_str).unwrap();
+    idx.update_file(
+        file_id,
+        initial_count as i64,
+        initial_count as i64,
+        initial_count as i64,
+        &format_str,
+    )
+    .unwrap();
 
     // Verify initial entries indexed
     let count = idx.total_entries().unwrap();
-    assert_eq!(count, initial_count as u64, "should have {} entries after initial index", initial_count);
+    assert_eq!(
+        count, initial_count as u64,
+        "should have {} entries after initial index",
+        initial_count
+    );
 
     // Phase 2: simulate append by indexing 02_append.log as the same file
     let append_path = fixture_path("incremental/02_append.log");
     let append_content = std::fs::read_to_string(&append_path).unwrap();
     let append_lines: Vec<String> = append_content.lines().map(|l| l.to_string()).collect();
-    let append_data_lines: Vec<String> = append_lines.iter()
-        .filter(|l| { let t = l.trim(); !t.is_empty() && !t.starts_with('#') })
+    let append_data_lines: Vec<String> = append_lines
+        .iter()
+        .filter(|l| {
+            let t = l.trim();
+            !t.is_empty() && !t.starts_with('#')
+        })
         .cloned()
         .collect();
     let append_data_content = append_data_lines.join("\n");
@@ -723,22 +853,30 @@ fn test_e2e_incremental_index() {
     // Verify total entries
     let total = idx.total_entries().unwrap();
     let expected_total = initial_count as u64 + append_count as u64;
-    assert_eq!(total, expected_total, "should have {} entries after incremental append (got {})", expected_total, total);
+    assert_eq!(
+        total, expected_total,
+        "should have {} entries after incremental append (got {})",
+        expected_total, total
+    );
 
     // Verify new entries are searchable
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
     let mut q_all = loggerlog::core::entry::SearchQuery::default();
     q_all.limit = 100;
     let rs_all = engine.search(&q_all).unwrap();
-    assert_eq!(rs_all.total_count, expected_total, "search should return all {} entries", expected_total);
+    assert_eq!(
+        rs_all.total_count, expected_total,
+        "search should return all {} entries",
+        expected_total
+    );
 }
 
 // ── I-07: File rotation grouping ─────────────────────────────────────────
 
 #[test]
 fn test_e2e_file_rotation_grouping() {
-    use loggerlog::core::discovery::FileDiscovery;
     use loggerlog::core::discovery::DiscoveredFile;
+    use loggerlog::core::discovery::FileDiscovery;
     use std::path::PathBuf;
 
     let rotation_dir = fixture_path("rotation");
@@ -771,30 +909,66 @@ fn test_e2e_file_rotation_grouping() {
 
     let groups = FileDiscovery::group_files(&files);
     let app_log_group = groups.get("app.log");
-    assert!(app_log_group.is_some(), "should have a group named 'app.log'");
+    assert!(
+        app_log_group.is_some(),
+        "should have a group named 'app.log'"
+    );
     let group = app_log_group.unwrap();
-    assert_eq!(group.len(), 3, "app.log group should contain 3 files (got {})", group.len());
+    assert_eq!(
+        group.len(),
+        3,
+        "app.log group should contain 3 files (got {})",
+        group.len()
+    );
 
     // Verify the expected files are in the group
-    let filenames: Vec<&str> = group.iter()
+    let filenames: Vec<&str> = group
+        .iter()
         .map(|f| f.path.file_name().unwrap().to_str().unwrap())
         .collect();
-    assert!(filenames.contains(&"app.log"), "group should contain app.log");
-    assert!(filenames.contains(&"app.log.1"), "group should contain app.log.1");
-    assert!(filenames.contains(&"app.log.2024-01-15.gz"), "group should contain app.log.2024-01-15.gz");
+    assert!(
+        filenames.contains(&"app.log"),
+        "group should contain app.log"
+    );
+    assert!(
+        filenames.contains(&"app.log.1"),
+        "group should contain app.log.1"
+    );
+    assert!(
+        filenames.contains(&"app.log.2024-01-15.gz"),
+        "group should contain app.log.2024-01-15.gz"
+    );
 
     // Verify rotation and compression flags
-    let current = group.iter().find(|f| f.path.file_name().unwrap().to_str() == Some("app.log")).unwrap();
+    let current = group
+        .iter()
+        .find(|f| f.path.file_name().unwrap().to_str() == Some("app.log"))
+        .unwrap();
     assert!(!current.is_rotated, "current app.log should not be rotated");
-    assert!(!current.is_compressed, "current app.log should not be compressed");
+    assert!(
+        !current.is_compressed,
+        "current app.log should not be compressed"
+    );
 
-    let rotated = group.iter().find(|f| f.path.file_name().unwrap().to_str() == Some("app.log.1")).unwrap();
+    let rotated = group
+        .iter()
+        .find(|f| f.path.file_name().unwrap().to_str() == Some("app.log.1"))
+        .unwrap();
     assert!(rotated.is_rotated, "app.log.1 should be rotated");
     assert!(!rotated.is_compressed, "app.log.1 should not be compressed");
 
-    let compressed = group.iter().find(|f| f.path.file_name().unwrap().to_str() == Some("app.log.2024-01-15.gz")).unwrap();
-    assert!(compressed.is_rotated, "app.log.2024-01-15.gz should be rotated");
-    assert!(compressed.is_compressed, "app.log.2024-01-15.gz should be compressed");
+    let compressed = group
+        .iter()
+        .find(|f| f.path.file_name().unwrap().to_str() == Some("app.log.2024-01-15.gz"))
+        .unwrap();
+    assert!(
+        compressed.is_rotated,
+        "app.log.2024-01-15.gz should be rotated"
+    );
+    assert!(
+        compressed.is_compressed,
+        "app.log.2024-01-15.gz should be compressed"
+    );
 }
 
 // ── I-08: Compressed file index ─────────────────────────────────────────
@@ -805,29 +979,42 @@ fn test_e2e_compressed_file_index() {
 
     // Read and decompress
     let content = loggerlog::core::encoding::read_gz_to_utf8(&gz_path).unwrap();
-    assert!(!content.is_empty(), "decompressed content should not be empty");
+    assert!(
+        !content.is_empty(),
+        "decompressed content should not be empty"
+    );
 
     // Should contain log lines
-    let log_lines: Vec<&str> = content.lines()
+    let log_lines: Vec<&str> = content
+        .lines()
         .filter(|l| {
             let t = l.trim();
             !t.is_empty() && !t.starts_with('#')
         })
         .collect();
-    assert!(!log_lines.is_empty(), "decompressed content should contain log lines");
+    assert!(
+        !log_lines.is_empty(),
+        "decompressed content should contain log lines"
+    );
 
     // Optionally index and search
     let idx = loggerlog::core::index::IndexManager::open_in_memory().unwrap();
     let file_id = idx.get_or_create_file(&gz_path).unwrap();
     let entries = create_raw_entries(&content, file_id, 0);
-    assert!(entries.len() > 0, "gz file should produce indexable entries");
+    assert!(
+        entries.len() > 0,
+        "gz file should produce indexable entries"
+    );
     idx.insert_entries(&entries).unwrap();
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
     let mut q = loggerlog::core::entry::SearchQuery::default();
     q.limit = 100;
     let rs = engine.search(&q).unwrap();
-    assert!(rs.total_count > 0, "should find results from compressed file");
+    assert!(
+        rs.total_count > 0,
+        "should find results from compressed file"
+    );
 }
 
 // ── I-09: Regex with level filter ───────────────────────────────────────
@@ -851,11 +1038,20 @@ fn test_e2e_regex_with_level_filter() {
     q.levels = vec!["ERROR".to_string()];
     let rs = engine.search_regex("connection", &q).unwrap();
 
-    assert!(rs.total_count > 0, "regex 'connection' + level=ERROR should find results");
+    assert!(
+        rs.total_count > 0,
+        "regex 'connection' + level=ERROR should find results"
+    );
     for r in &rs.results {
-        assert_eq!(r.level.as_deref(), Some("ERROR"), "all results should be ERROR level");
-        assert!(r.raw.contains("connection") || r.message.contains("connection"),
-            "result should contain 'connection'");
+        assert_eq!(
+            r.level.as_deref(),
+            Some("ERROR"),
+            "all results should be ERROR level"
+        );
+        assert!(
+            r.raw.contains("connection") || r.message.contains("connection"),
+            "result should contain 'connection'"
+        );
     }
 }
 
@@ -892,7 +1088,9 @@ fn test_e2e_stacktrace_context() {
     assert!(max_line > min_line, "context should span multiple lines");
 
     // Verify that stack trace lines (containing "at " or ".java") are present in the context
-    let has_stack_lines = ctx.iter().any(|c| c.raw.contains("at ") || c.raw.contains(".java"));
+    let has_stack_lines = ctx
+        .iter()
+        .any(|c| c.raw.contains("at ") || c.raw.contains(".java"));
     assert!(has_stack_lines, "context should include stack trace lines");
 }
 
@@ -907,7 +1105,10 @@ fn test_e2e_unicode_search() {
     let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let _format_str = scanner::detect_format_hint(&lines);
     let entries = create_raw_entries(&content, file_id, 0);
-    assert!(entries.len() > 0, "special characters fixture should produce entries");
+    assert!(
+        entries.len() > 0,
+        "special characters fixture should produce entries"
+    );
     idx.insert_entries(&entries).unwrap();
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -916,17 +1117,27 @@ fn test_e2e_unicode_search() {
     let mut q = loggerlog::core::entry::SearchQuery::default();
     q.limit = 100;
     let rs = engine.search_regex("用户名", &q).unwrap();
-    assert!(rs.total_count > 0, "regex search for '用户名' should find results (got {})", rs.total_count);
+    assert!(
+        rs.total_count > 0,
+        "regex search for '用户名' should find results (got {})",
+        rs.total_count
+    );
     for r in &rs.results {
-        assert!(r.raw.contains("用户名") || r.message.contains("用户名"),
-            "result should contain Chinese text");
+        assert!(
+            r.raw.contains("用户名") || r.message.contains("用户名"),
+            "result should contain Chinese text"
+        );
     }
 
     // Regex search for Japanese text "ログイン"
     let mut q2 = loggerlog::core::entry::SearchQuery::default();
     q2.limit = 100;
     let rs2 = engine.search_regex("ログイン", &q2).unwrap();
-    assert!(rs2.total_count > 0, "regex search for Japanese should find results (got {})", rs2.total_count);
+    assert!(
+        rs2.total_count > 0,
+        "regex search for Japanese should find results (got {})",
+        rs2.total_count
+    );
 }
 
 // ── I-12: Exclude filter ─────────────────────────────────────────────────
@@ -940,14 +1151,22 @@ fn test_e2e_exclude_filter() {
     let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let _format_str = scanner::detect_format_hint(&lines);
     // Filter out comment and empty lines
-    let data_lines: Vec<String> = lines.iter()
-        .filter(|l| { let t = l.trim(); !t.is_empty() && !t.starts_with('#') })
+    let data_lines: Vec<String> = lines
+        .iter()
+        .filter(|l| {
+            let t = l.trim();
+            !t.is_empty() && !t.starts_with('#')
+        })
         .cloned()
         .collect();
     let data_content = data_lines.join("\n");
     let entries = create_raw_entries(&data_content, file_id, 0);
     // 12 data lines total (4 health, 4 metrics, 4 business)
-    assert_eq!(entries.len(), 12, "exclude_multi.log should have 12 data entries");
+    assert_eq!(
+        entries.len(),
+        12,
+        "exclude_multi.log should have 12 data entries"
+    );
     idx.insert_entries(&entries).unwrap();
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
@@ -958,12 +1177,27 @@ fn test_e2e_exclude_filter() {
     q.exclude = vec!["health".to_string(), "metrics".to_string()];
     let rs = engine.search(&q).unwrap();
 
-    assert_eq!(rs.total_count, 4, "should return only 4 business lines (got {})", rs.total_count);
+    assert_eq!(
+        rs.total_count, 4,
+        "should return only 4 business lines (got {})",
+        rs.total_count
+    );
     for r in &rs.results {
-        assert!(!r.raw.contains("health"), "result should not contain 'health'");
-        assert!(!r.raw.contains("metrics"), "result should not contain 'metrics'");
-        assert!(r.raw.contains("business") || r.thread.as_deref() == Some("worker-1") || r.thread.as_deref() == Some("worker-2"),
-            "result should be a business line: {}", r.raw);
+        assert!(
+            !r.raw.contains("health"),
+            "result should not contain 'health'"
+        );
+        assert!(
+            !r.raw.contains("metrics"),
+            "result should not contain 'metrics'"
+        );
+        assert!(
+            r.raw.contains("business")
+                || r.thread.as_deref() == Some("worker-1")
+                || r.thread.as_deref() == Some("worker-2"),
+            "result should be a business line: {}",
+            r.raw
+        );
     }
 }
 
@@ -997,14 +1231,27 @@ fn test_e2e_context_around_result() {
 
     // Context size 2 — 2 lines before and after
     let ctx2 = engine.get_context(r.file_id, r.line_number, 2).unwrap();
-    assert!(ctx2.len() >= 3, "context_size=2 should return at least 3 lines (got {})", ctx2.len());
-    assert!(ctx2.len() <= 5, "context_size=2 should return at most 5 lines (got {})", ctx2.len());
+    assert!(
+        ctx2.len() >= 3,
+        "context_size=2 should return at least 3 lines (got {})",
+        ctx2.len()
+    );
+    assert!(
+        ctx2.len() <= 5,
+        "context_size=2 should return at most 5 lines (got {})",
+        ctx2.len()
+    );
 
     // Verify line numbers are sequential
     let line_nums: Vec<u64> = ctx2.iter().map(|c| c.line_number).collect();
     for i in 1..line_nums.len() {
-        assert_eq!(line_nums[i], line_nums[i-1] + 1,
-            "line numbers should be sequential: {} -> {}", line_nums[i-1], line_nums[i]);
+        assert_eq!(
+            line_nums[i],
+            line_nums[i - 1] + 1,
+            "line numbers should be sequential: {} -> {}",
+            line_nums[i - 1],
+            line_nums[i]
+        );
     }
 
     // Context at line 1 — no lines before
@@ -1032,21 +1279,40 @@ fn test_e2e_summary_aggregation() {
     let summary = engine.search_summary(&q, 5).unwrap();
 
     assert!(summary.total_count > 0, "summary should have entries");
-    assert!(!summary.level_distribution.is_empty(), "level_distribution should not be empty");
-    assert!(!summary.source_breakdown.is_empty(), "source_breakdown should not be empty");
-    assert!(!summary.top_messages.is_empty(), "top_messages should not be empty");
+    assert!(
+        !summary.level_distribution.is_empty(),
+        "level_distribution should not be empty"
+    );
+    assert!(
+        !summary.source_breakdown.is_empty(),
+        "source_breakdown should not be empty"
+    );
+    assert!(
+        !summary.top_messages.is_empty(),
+        "top_messages should not be empty"
+    );
     assert!(summary.time_range.is_some(), "time_range should be present");
 
     // Verify level_distribution has expected levels
-    let level_names: Vec<&str> = summary.level_distribution.iter().map(|l| l.level.as_str()).collect();
+    let level_names: Vec<&str> = summary
+        .level_distribution
+        .iter()
+        .map(|l| l.level.as_str())
+        .collect();
     assert!(level_names.contains(&"INFO"), "should have INFO level");
     assert!(level_names.contains(&"ERROR"), "should have ERROR level");
     assert!(level_names.contains(&"DEBUG"), "should have DEBUG level");
 
     // Verify source_breakdown is truncated to top_n=5
-    assert!(summary.source_breakdown.len() <= 5, "source_breakdown should be at most 5");
+    assert!(
+        summary.source_breakdown.len() <= 5,
+        "source_breakdown should be at most 5"
+    );
     // Verify top_messages is truncated to top_n=5
-    assert!(summary.top_messages.len() <= 5, "top_messages should be at most 5");
+    assert!(
+        summary.top_messages.len() <= 5,
+        "top_messages should be at most 5"
+    );
 }
 
 // ── I-15: All query filters ──────────────────────────────────────────────
@@ -1074,16 +1340,29 @@ fn test_e2e_all_query_filters() {
 
     // filter_test.log has ERROR lines from threads error-1, error-2, error-3
     // thread filter is a substring match, so "error" matches all three
-    assert!(rs.total_count > 0, "should find results matching level=ERROR + thread=error + source=filter_test");
+    assert!(
+        rs.total_count > 0,
+        "should find results matching level=ERROR + thread=error + source=filter_test"
+    );
     for r in &rs.results {
-        assert_eq!(r.level.as_deref(), Some("ERROR"), "all results should be ERROR");
-        assert!(r.thread.as_ref().map(|t| t.contains("error")).unwrap_or(false),
-            "all results should have thread containing 'error'");
+        assert_eq!(
+            r.level.as_deref(),
+            Some("ERROR"),
+            "all results should be ERROR"
+        );
+        assert!(
+            r.thread
+                .as_ref()
+                .map(|t| t.contains("error"))
+                .unwrap_or(false),
+            "all results should have thread containing 'error'"
+        );
     }
 
     // Also test parse_query_string with combined filters
     let parsed = loggerlog::core::engine::parse_query_string(
-        "level=WARN thread=warn exclude=health error", 50
+        "level=WARN thread=warn exclude=health error",
+        50,
     );
     assert_eq!(parsed.levels, vec!["WARN"]);
     assert_eq!(parsed.thread.as_deref(), Some("warn"));
@@ -1108,27 +1387,23 @@ fn test_e2e_config_roundtrip() {
             watch_interval: "5s".to_string(),
         },
         sources: config::SourcesConfig {
-            directories: vec![
-                DirectorySource {
-                    path: "/var/log/myapp".to_string(),
-                    recursive: false,
-                    formats: vec!["log4j".to_string(), "json".to_string()],
-                    encoding: "utf-8".to_string(),
-                    exclude_patterns: vec!["*.tmp".to_string()],
-                },
-            ],
+            directories: vec![DirectorySource {
+                path: "/var/log/myapp".to_string(),
+                recursive: false,
+                formats: vec!["log4j".to_string(), "json".to_string()],
+                encoding: "utf-8".to_string(),
+                exclude_patterns: vec!["*.tmp".to_string()],
+            }],
         },
         projects: config::ProjectsConfig {
-            projects: vec![
-                Project {
-                    name: "webapp".to_string(),
-                    path: "/logs/webapp".to_string(),
-                    recursive: true,
-                    formats: vec!["auto".to_string()],
-                    encoding: "auto".to_string(),
-                    exclude_patterns: vec![],
-                },
-            ],
+            projects: vec![Project {
+                name: "webapp".to_string(),
+                path: "/logs/webapp".to_string(),
+                recursive: true,
+                formats: vec!["auto".to_string()],
+                encoding: "auto".to_string(),
+                exclude_patterns: vec![],
+            }],
         },
         search: SearchConfig {
             default_limit: 200,
@@ -1142,8 +1417,14 @@ fn test_e2e_config_roundtrip() {
     // Verify all fields match
     assert_eq!(loaded.general.database_path, original.general.database_path);
     assert_eq!(loaded.general.max_file_size, original.general.max_file_size);
-    assert_eq!(loaded.general.max_index_size, original.general.max_index_size);
-    assert_eq!(loaded.general.watch_interval, original.general.watch_interval);
+    assert_eq!(
+        loaded.general.max_index_size,
+        original.general.max_index_size
+    );
+    assert_eq!(
+        loaded.general.watch_interval,
+        original.general.watch_interval
+    );
 
     assert_eq!(loaded.sources.directories.len(), 1);
     let d = &loaded.sources.directories[0];
@@ -1191,28 +1472,60 @@ fn test_e2e_discovery_with_tempdir() {
     fs::write(tmp.join("debug.log"), "2024-01-01 DEBUG debug\n").unwrap();
     fs::create_dir_all(tmp.join("services")).unwrap();
     fs::write(tmp.join("services/auth.log"), "2024-01-01 ERROR auth\n").unwrap();
-    fs::write(tmp.join("services/billing.txt"), "2024-01-01 WARN billing\n").unwrap();
+    fs::write(
+        tmp.join("services/billing.txt"),
+        "2024-01-01 WARN billing\n",
+    )
+    .unwrap();
     fs::write(tmp.join("services/not_a_log.json"), "{}\n").unwrap();
     fs::write(tmp.join("README.md"), "# readme\n").unwrap();
 
     // Scan recursively with no exclude patterns
     let files = FileDiscovery::scan_directory(&tmp, true, &[]);
 
-    let filenames: Vec<String> = files.iter()
+    let filenames: Vec<String> = files
+        .iter()
         .map(|f| f.path.file_name().unwrap().to_string_lossy().to_string())
         .collect();
 
-    assert!(filenames.contains(&"app.log".to_string()), "should discover app.log");
-    assert!(filenames.contains(&"debug.log".to_string()), "should discover debug.log");
-    assert!(filenames.contains(&"auth.log".to_string()), "should discover services/auth.log");
-    assert!(filenames.contains(&"billing.txt".to_string()), "should discover services/billing.txt");
-    assert!(!filenames.contains(&"not_a_log.json".to_string()), "should not discover .json files");
-    assert!(!filenames.contains(&"README.md".to_string()), "should not discover README.md");
-    assert_eq!(files.len(), 4, "should discover exactly 4 log files (got {})", files.len());
+    assert!(
+        filenames.contains(&"app.log".to_string()),
+        "should discover app.log"
+    );
+    assert!(
+        filenames.contains(&"debug.log".to_string()),
+        "should discover debug.log"
+    );
+    assert!(
+        filenames.contains(&"auth.log".to_string()),
+        "should discover services/auth.log"
+    );
+    assert!(
+        filenames.contains(&"billing.txt".to_string()),
+        "should discover services/billing.txt"
+    );
+    assert!(
+        !filenames.contains(&"not_a_log.json".to_string()),
+        "should not discover .json files"
+    );
+    assert!(
+        !filenames.contains(&"README.md".to_string()),
+        "should not discover README.md"
+    );
+    assert_eq!(
+        files.len(),
+        4,
+        "should discover exactly 4 log files (got {})",
+        files.len()
+    );
 
     // Non-recursive scan should only find top-level files
     let files_nonrec = FileDiscovery::scan_directory(&tmp, false, &[]);
-    assert_eq!(files_nonrec.len(), 2, "non-recursive should find only 2 top-level log files");
+    assert_eq!(
+        files_nonrec.len(),
+        2,
+        "non-recursive should find only 2 top-level log files"
+    );
 
     let _ = fs::remove_dir_all(&tmp);
 }
@@ -1232,7 +1545,11 @@ fn test_e2e_detect_format_threshold() {
 
     let hint = scanner::detect_format_hint(&lines);
     // Majority is plain text, so hint should be "plain" (not "json")
-    assert_eq!(hint, "plain", "detect_format_hint should return 'plain' when plain lines are majority (got '{}')", hint);
+    assert_eq!(
+        hint, "plain",
+        "detect_format_hint should return 'plain' when plain lines are majority (got '{}')",
+        hint
+    );
 }
 
 // ── I-19: High volume ─────────────────────────────────────────────────────
@@ -1248,9 +1565,20 @@ fn test_e2e_high_volume() {
     let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
     let format_str = scanner::detect_format_hint(&lines);
     let entries = create_raw_entries(&content, file_id, 0);
-    assert_eq!(entries.len(), 10000, "high_volume.log should have 10000 lines");
+    assert_eq!(
+        entries.len(),
+        10000,
+        "high_volume.log should have 10000 lines"
+    );
     idx.insert_entries(&entries).unwrap();
-    idx.update_file(file_id, entries.len() as i64, entries.len() as i64, entries.len() as i64, &format_str).unwrap();
+    idx.update_file(
+        file_id,
+        entries.len() as i64,
+        entries.len() as i64,
+        entries.len() as i64,
+        &format_str,
+    )
+    .unwrap();
 
     let engine = loggerlog::core::engine::SearchEngine::new(idx.conn());
     let mut q = loggerlog::core::entry::SearchQuery::default();
@@ -1258,9 +1586,16 @@ fn test_e2e_high_volume() {
     q.fts_query = Some("error".to_string());
     let rs = engine.search(&q).unwrap();
 
-    assert!(rs.total_count > 0, "should find 'error' results in high_volume.log");
+    assert!(
+        rs.total_count > 0,
+        "should find 'error' results in high_volume.log"
+    );
     // Verify total_count is not truncated — all matching entries are counted
-    assert!(rs.total_count >= 50, "total_count should be substantial, got {}", rs.total_count);
+    assert!(
+        rs.total_count >= 50,
+        "total_count should be substantial, got {}",
+        rs.total_count
+    );
 }
 
 // ── I-20: All fixtures indexable ───────────────────────────────────────────
@@ -1326,20 +1661,28 @@ fn test_e2e_all_fixtures_indexable() {
             // Create an in-memory index per file (cheap — small in-memory SQLite)
             let idx = loggerlog::core::index::IndexManager::open_in_memory()
                 .unwrap_or_else(|_| panic!("open_in_memory failed for {}", file_path.display()));
-            let file_id = idx.get_or_create_file(&file_path.to_string_lossy())
-                .unwrap_or_else(|_| panic!("get_or_create_file failed for {}", file_path.display()));
+            let file_id = idx
+                .get_or_create_file(&file_path.to_string_lossy())
+                .unwrap_or_else(|_| {
+                    panic!("get_or_create_file failed for {}", file_path.display())
+                });
             let entries = create_raw_entries(&content, file_id, 0);
 
             // Insert into index — should not panic or error
-            idx.insert_entries(&entries)
-                .unwrap_or_else(|e| panic!("insert_entries failed for {}: {}", file_path.display(), e));
+            idx.insert_entries(&entries).unwrap_or_else(|e| {
+                panic!("insert_entries failed for {}: {}", file_path.display(), e)
+            });
 
             // Quick smoke: verify the file is indexed (skip for truly empty files)
             if !content.trim().is_empty() {
-                let total = idx.total_entries().unwrap_or_else(|_| {
-                    panic!("total_entries failed for {}", file_path.display())
-                });
-                assert!(total > 0, "{} should have at least 1 indexed entry", file_path.display());
+                let total = idx
+                    .total_entries()
+                    .unwrap_or_else(|_| panic!("total_entries failed for {}", file_path.display()));
+                assert!(
+                    total > 0,
+                    "{} should have at least 1 indexed entry",
+                    file_path.display()
+                );
             }
 
             indexed_count += 1;
@@ -1347,7 +1690,10 @@ fn test_e2e_all_fixtures_indexable() {
     }
 
     // At minimum, the well-known fixture directories should have contributed files
-    assert!(indexed_count > 10,
+    assert!(
+        indexed_count > 10,
         "should index at least 10 fixture files (indexed {}, skipped: {:?})",
-        indexed_count, skipped);
+        indexed_count,
+        skipped
+    );
 }

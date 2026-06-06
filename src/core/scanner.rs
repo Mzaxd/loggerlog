@@ -5,14 +5,7 @@ use std::sync::OnceLock;
 /// Known log level keywords (from Syslog RFC 5424, common across all logging systems).
 /// Order: longer keywords first to avoid partial matching (WARNING before WARN, SEVERE before ERROR).
 const LEVEL_KEYWORDS: &[&str] = &[
-    "WARNING",
-    "SEVERE",
-    "FATAL",
-    "ERROR",
-    "DEBUG",
-    "TRACE",
-    "INFO",
-    "WARN",
+    "WARNING", "SEVERE", "FATAL", "ERROR", "DEBUG", "TRACE", "INFO", "WARN",
 ];
 
 /// Regex capturing all level keywords as whole words.
@@ -466,7 +459,9 @@ mod tests {
     fn test_extract_level_gas_style() {
         // GAS format: ... [Thread-34] ERROR [] ...
         assert_eq!(
-            extract_level("2026-06-04 08:39:55.004 [Thread-34] ERROR [] c.gas.service - something failed"),
+            extract_level(
+                "2026-06-04 08:39:55.004 [Thread-34] ERROR [] c.gas.service - something failed"
+            ),
             Some("ERROR".to_string())
         );
     }
@@ -522,10 +517,7 @@ mod tests {
     #[test]
     fn test_extract_level_none() {
         // Unstructured text without known level keywords
-        assert_eq!(
-            extract_level("this is just some random text"),
-            None
-        );
+        assert_eq!(extract_level("this is just some random text"), None);
     }
 
     #[test]
@@ -536,16 +528,16 @@ mod tests {
     #[test]
     fn test_extract_level_no_false_positive() {
         // "ERRORED" should NOT match ERROR (whole word check)
-        assert_eq!(
-            extract_level("The operation ERRORED out"),
-            None
-        );
+        assert_eq!(extract_level("The operation ERRORED out"), None);
     }
 
     #[test]
     fn test_extract_level_no_false_positive_underscore() {
         // "INFO_GRAPHICS" should NOT match INFO (underscore is a word char)
-        assert_eq!(extract_level("INFO_GRAPHICS rendering pipeline started"), None);
+        assert_eq!(
+            extract_level("INFO_GRAPHICS rendering pipeline started"),
+            None
+        );
     }
 
     #[test]
@@ -569,7 +561,10 @@ mod tests {
     fn test_extract_timestamp_log4j() {
         let result = extract_timestamp("2024-01-15 10:23:45,123 INFO [main] c.m.App - msg");
         assert!(result.is_some());
-        assert_eq!(result.unwrap().format("%Y-%m-%d %H:%M:%S").to_string(), "2024-01-15 10:23:45");
+        assert_eq!(
+            result.unwrap().format("%Y-%m-%d %H:%M:%S").to_string(),
+            "2024-01-15 10:23:45"
+        );
     }
 
     #[test]
@@ -592,7 +587,8 @@ mod tests {
 
     #[test]
     fn test_extract_timestamp_json() {
-        let result = extract_timestamp(r#"{"timestamp":"2024-01-15T10:23:45.123Z","level":"INFO"}"#);
+        let result =
+            extract_timestamp(r#"{"timestamp":"2024-01-15T10:23:45.123Z","level":"INFO"}"#);
         assert!(result.is_some());
     }
 
@@ -625,7 +621,9 @@ mod tests {
     #[test]
     fn test_extract_message_logback() {
         assert_eq!(
-            extract_message("2024-01-15 10:23:45.123  INFO --- [main] c.m.App : User login successful"),
+            extract_message(
+                "2024-01-15 10:23:45.123  INFO --- [main] c.m.App : User login successful"
+            ),
             "User login successful"
         );
     }
@@ -633,7 +631,9 @@ mod tests {
     #[test]
     fn test_extract_message_json() {
         assert_eq!(
-            extract_message(r#"{"timestamp":"2024-01-15T10:23:45Z","level":"INFO","message":"Application started"}"#),
+            extract_message(
+                r#"{"timestamp":"2024-01-15T10:23:45Z","level":"INFO","message":"Application started"}"#
+            ),
             "Application started"
         );
     }
@@ -682,7 +682,9 @@ mod tests {
     #[test]
     fn test_extract_thread_logback() {
         assert_eq!(
-            extract_thread("2024-01-15 10:23:45.123  INFO --- [http-nio-8080-exec-1] c.m.App : msg"),
+            extract_thread(
+                "2024-01-15 10:23:45.123  INFO --- [http-nio-8080-exec-1] c.m.App : msg"
+            ),
             Some("http-nio-8080-exec-1".to_string())
         );
     }
@@ -743,10 +745,7 @@ mod tests {
     #[test]
     fn test_extract_logger_skips_timestamps() {
         // Timestamps with dots (e.g., 2024.01.15) should not be mistaken for loggers
-        assert_eq!(
-            extract_logger("2024.01.15 10:23:45 INFO msg"),
-            None
-        );
+        assert_eq!(extract_logger("2024.01.15 10:23:45 INFO msg"), None);
     }
 
     // ─── detect_format_hint tests ───
@@ -781,10 +780,7 @@ mod tests {
 
     #[test]
     fn test_detect_format_plain() {
-        let lines = vec![
-            "just some text".to_string(),
-            "more random text".to_string(),
-        ];
+        let lines = vec!["just some text".to_string(), "more random text".to_string()];
         assert_eq!(detect_format_hint(&lines), "plain");
     }
 

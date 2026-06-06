@@ -6,9 +6,11 @@ pub fn run(action: ConfigAction, config_path: Option<&str>) -> Result<()> {
     match action {
         ConfigAction::Show => show_config(config_path),
         ConfigAction::Edit => edit_config(),
-        ConfigAction::AddDir { path, recursive, encoding } => {
-            add_dir(&path, recursive, &encoding, config_path)
-        }
+        ConfigAction::AddDir {
+            path,
+            recursive,
+            encoding,
+        } => add_dir(&path, recursive, &encoding, config_path),
         ConfigAction::RemoveDir { path } => remove_dir(&path, config_path),
     }
 }
@@ -28,8 +30,13 @@ fn show_config(config_path: Option<&str>) -> Result<()> {
     } else {
         println!("Log directories:");
         for (i, dir) in cfg.sources.directories.iter().enumerate() {
-            println!("  {}. {} (recursive={}, encoding={})",
-                i + 1, dir.path, dir.recursive, dir.encoding);
+            println!(
+                "  {}. {} (recursive={}, encoding={})",
+                i + 1,
+                dir.path,
+                dir.recursive,
+                dir.encoding
+            );
         }
     }
 
@@ -39,9 +46,7 @@ fn show_config(config_path: Option<&str>) -> Result<()> {
 fn edit_config() -> Result<()> {
     let path = config::config_path();
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
-    std::process::Command::new(editor)
-        .arg(path)
-        .status()?;
+    std::process::Command::new(editor).arg(path).status()?;
     Ok(())
 }
 
@@ -51,7 +56,10 @@ fn add_dir(path: &str, recursive: bool, encoding: &str, config_path: Option<&str
 
     if added {
         config::save(&cfg, config_path)?;
-        println!("Added log directory: {} (recursive={}, encoding={})", path, recursive, encoding);
+        println!(
+            "Added log directory: {} (recursive={}, encoding={})",
+            path, recursive, encoding
+        );
     } else {
         println!("Directory already configured: {}", path);
     }

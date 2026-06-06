@@ -16,7 +16,9 @@ impl IndexManager {
         }
 
         let conn = Connection::open(db_path)?;
-        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-64000;")?;
+        conn.execute_batch(
+            "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-64000;",
+        )?;
         let mgr = Self { conn };
         mgr.init_schema()?;
         Ok(mgr)
@@ -86,37 +88,34 @@ impl IndexManager {
     fn migrate_schema(&self) -> Result<()> {
         // Create schema_version table if not exists
         self.conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)",
         )?;
 
-        let version: i32 = self.conn.query_row(
-            "SELECT COALESCE(MAX(version), 0) FROM schema_version",
-            [],
-            |row| row.get(0),
-        ).unwrap_or(0);
+        let version: i32 = self
+            .conn
+            .query_row(
+                "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
 
         if version < 2 {
             self.migrate_v2()?;
-            self.conn.execute(
-                "INSERT INTO schema_version (version) VALUES (2)",
-                [],
-            )?;
+            self.conn
+                .execute("INSERT INTO schema_version (version) VALUES (2)", [])?;
         }
 
         if version < 3 {
             self.migrate_v3()?;
-            self.conn.execute(
-                "INSERT INTO schema_version (version) VALUES (3)",
-                [],
-            )?;
+            self.conn
+                .execute("INSERT INTO schema_version (version) VALUES (3)", [])?;
         }
 
         if version < 4 {
             self.migrate_v4()?;
-            self.conn.execute(
-                "INSERT INTO schema_version (version) VALUES (4)",
-                [],
-            )?;
+            self.conn
+                .execute("INSERT INTO schema_version (version) VALUES (4)", [])?;
         }
 
         Ok(())
@@ -130,15 +129,18 @@ impl IndexManager {
                 name        TEXT NOT NULL UNIQUE,
                 path        TEXT NOT NULL,
                 created_at  TEXT DEFAULT (datetime('now'))
-            );"
+            );",
         )?;
 
         // Add project_id column to files if it doesn't exist (must come before index)
-        let has_project_id: bool = self.conn.query_row(
-            "SELECT COUNT(*) FROM pragma_table_info('files') WHERE name = 'project_id'",
-            [],
-            |row| row.get::<_, i32>(0).map(|c| c > 0),
-        ).unwrap_or(false);
+        let has_project_id: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('files') WHERE name = 'project_id'",
+                [],
+                |row| row.get::<_, i32>(0).map(|c| c > 0),
+            )
+            .unwrap_or(false);
 
         if !has_project_id {
             self.conn.execute_batch(
@@ -147,9 +149,8 @@ impl IndexManager {
         }
 
         // Create index after column exists
-        self.conn.execute_batch(
-            "CREATE INDEX IF NOT EXISTS idx_files_project ON files(project_id);"
-        )?;
+        self.conn
+            .execute_batch("CREATE INDEX IF NOT EXISTS idx_files_project ON files(project_id);")?;
 
         Ok(())
     }
@@ -160,11 +161,14 @@ impl IndexManager {
     /// rebuilds the FTS5 table, we guard against missing columns.
     fn migrate_v3(&self) -> Result<()> {
         // Check if the old structured columns still exist (they won't after v4)
-        let has_message: bool = self.conn.query_row(
-            "SELECT COUNT(*) FROM pragma_table_info('log_entries') WHERE name = 'message'",
-            [],
-            |row| row.get::<_, i32>(0).map(|c| c > 0),
-        ).unwrap_or(false);
+        let has_message: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('log_entries') WHERE name = 'message'",
+                [],
+                |row| row.get::<_, i32>(0).map(|c| c > 0),
+            )
+            .unwrap_or(false);
 
         if !has_message {
             // v4 already ran or schema was created fresh — skip v3 entirely
@@ -176,7 +180,7 @@ impl IndexManager {
             "DROP TRIGGER IF EXISTS log_entries_ai;
              DROP TRIGGER IF EXISTS log_entries_ad;
              DROP TRIGGER IF EXISTS log_entries_au;
-             DROP TABLE IF EXISTS log_entries_fts;"
+             DROP TABLE IF EXISTS log_entries_fts;",
         )?;
 
         // 2. Recreate FTS5 table with fields_json column
@@ -188,13 +192,13 @@ impl IndexManager {
                 content='log_entries',
                 content_rowid='id',
                 tokenize='unicode61 remove_diacritics 1'
-            );"
+            );",
         )?;
 
         // 3. Rebuild FTS index from existing log entries
         self.conn.execute_batch(
             "INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
-             SELECT id, message, raw, fields_json FROM log_entries;"
+             SELECT id, message, raw, fields_json FROM log_entries;",
         )?;
 
         // 4. Recreate triggers with fields_json support
@@ -214,7 +218,7 @@ impl IndexManager {
                     VALUES('delete', old.id, old.message, old.raw, old.fields_json);
                 INSERT INTO log_entries_fts(rowid, message, raw, fields_json)
                     VALUES (new.id, new.message, new.raw, new.fields_json);
-             END;"
+             END;",
         )?;
 
         Ok(())
@@ -228,14 +232,14 @@ impl IndexManager {
             "DROP TRIGGER IF EXISTS log_entries_ai;
              DROP TRIGGER IF EXISTS log_entries_ad;
              DROP TRIGGER IF EXISTS log_entries_au;
-             DROP TABLE IF EXISTS log_entries_fts;"
+             DROP TABLE IF EXISTS log_entries_fts;",
         )?;
 
         // 2. Drop old indexes (they reference columns that will be removed)
         self.conn.execute_batch(
             "DROP INDEX IF EXISTS idx_entries_timestamp;
              DROP INDEX IF EXISTS idx_entries_level;
-             DROP INDEX IF EXISTS idx_entries_thread;"
+             DROP INDEX IF EXISTS idx_entries_thread;",
         )?;
 
         // 3. Rebuild log_entries table without structured columns
@@ -251,12 +255,12 @@ impl IndexManager {
             INSERT INTO log_entries_new (id, file_id, line_number, byte_offset, raw)
                 SELECT id, file_id, line_number, byte_offset, raw FROM log_entries;
             DROP TABLE log_entries;
-            ALTER TABLE log_entries_new RENAME TO log_entries;"
+            ALTER TABLE log_entries_new RENAME TO log_entries;",
         )?;
 
         // 4. Recreate file index
         self.conn.execute_batch(
-            "CREATE INDEX IF NOT EXISTS idx_entries_file ON log_entries(file_id);"
+            "CREATE INDEX IF NOT EXISTS idx_entries_file ON log_entries(file_id);",
         )?;
 
         // 5. Create simplified FTS5 table (raw only)
@@ -266,13 +270,13 @@ impl IndexManager {
                 content='log_entries',
                 content_rowid='id',
                 tokenize='unicode61 remove_diacritics 1'
-            );"
+            );",
         )?;
 
         // 6. Rebuild FTS index from existing data
         self.conn.execute_batch(
             "INSERT INTO log_entries_fts(rowid, raw)
-             SELECT id, raw FROM log_entries;"
+             SELECT id, raw FROM log_entries;",
         )?;
 
         // 7. Recreate triggers (raw only)
@@ -290,7 +294,7 @@ impl IndexManager {
                 INSERT INTO log_entries_fts(log_entries_fts, rowid, raw)
                     VALUES('delete', old.id, old.raw);
                 INSERT INTO log_entries_fts(rowid, raw) VALUES (new.id, new.raw);
-             END;"
+             END;",
         )?;
 
         Ok(())
@@ -298,25 +302,33 @@ impl IndexManager {
 
     /// Get or create a file record
     pub fn get_or_create_file(&self, path: &str) -> Result<i64> {
-        let existing: Option<i64> = self.conn.query_row(
-            "SELECT id FROM files WHERE path = ?",
-            params![path],
-            |row| row.get(0),
-        ).ok();
+        let existing: Option<i64> = self
+            .conn
+            .query_row(
+                "SELECT id FROM files WHERE path = ?",
+                params![path],
+                |row| row.get(0),
+            )
+            .ok();
 
         if let Some(id) = existing {
             Ok(id)
         } else {
-            self.conn.execute(
-                "INSERT INTO files (path) VALUES (?)",
-                params![path],
-            )?;
+            self.conn
+                .execute("INSERT INTO files (path) VALUES (?)", params![path])?;
             Ok(self.conn.last_insert_rowid())
         }
     }
 
     /// Update file metadata
-    pub fn update_file(&self, file_id: i64, size: i64, byte_offset: i64, line_count: i64, format: &str) -> Result<()> {
+    pub fn update_file(
+        &self,
+        file_id: i64,
+        size: i64,
+        byte_offset: i64,
+        line_count: i64,
+        format: &str,
+    ) -> Result<()> {
         self.conn.execute(
             "UPDATE files SET size = ?, byte_offset = ?, line_count = ?, format = ?, updated_at = datetime('now') WHERE id = ?",
             params![size, byte_offset, line_count, format, file_id],
@@ -336,7 +348,7 @@ impl IndexManager {
         {
             let mut stmt = tx.prepare(
                 "INSERT INTO log_entries (file_id, line_number, byte_offset, raw)
-                 VALUES (?, ?, ?, ?)"
+                 VALUES (?, ?, ?, ?)",
             )?;
 
             for entry in entries {
@@ -356,7 +368,10 @@ impl IndexManager {
 
     /// Remove entries for a file and re-insert from scratch
     pub fn clear_file_entries(&self, file_id: i64) -> Result<()> {
-        self.conn.execute("DELETE FROM log_entries WHERE file_id = ?", params![file_id])?;
+        self.conn.execute(
+            "DELETE FROM log_entries WHERE file_id = ?",
+            params![file_id],
+        )?;
         Ok(())
     }
 
@@ -364,7 +379,7 @@ impl IndexManager {
     pub fn compact(&self) -> Result<()> {
         self.conn.execute_batch(
             "INSERT INTO log_entries_fts(log_entries_fts) VALUES('rebuild');
-             PRAGMA optimize;"
+             PRAGMA optimize;",
         )?;
         Ok(())
     }
@@ -377,57 +392,59 @@ impl IndexManager {
 
     /// Get total entry count
     pub fn total_entries(&self) -> Result<u64> {
-        let count: u64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM log_entries",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: u64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM log_entries", [], |row| row.get(0))?;
         Ok(count)
     }
 
     /// Get total file count
     pub fn total_files(&self) -> Result<usize> {
-        let count: usize = self.conn.query_row(
-            "SELECT COUNT(*) FROM files",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: usize = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))?;
         Ok(count)
     }
 
     /// Get file byte offset (for incremental indexing)
     pub fn get_file_byte_offset(&self, file_id: i64) -> Result<i64> {
-        let offset: i64 = self.conn.query_row(
-            "SELECT byte_offset FROM files WHERE id = ?",
-            params![file_id],
-            |row| row.get(0),
-        ).unwrap_or(0);
+        let offset: i64 = self
+            .conn
+            .query_row(
+                "SELECT byte_offset FROM files WHERE id = ?",
+                params![file_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
         Ok(offset)
     }
 
     /// Get a single file record by path (point query, efficient)
     pub fn get_file_by_path(&self, path: &str) -> Result<Option<FileRecord>> {
-        let result = self.conn.query_row(
-            "SELECT id, path, size, format, byte_offset, line_count FROM files WHERE path = ?",
-            params![path],
-            |row| {
-                Ok(FileRecord {
-                    id: row.get(0)?,
-                    path: row.get(1)?,
-                    size: row.get(2)?,
-                    format: row.get(3)?,
-                    byte_offset: row.get(4)?,
-                    line_count: row.get(5)?,
-                })
-            },
-        ).ok();
+        let result = self
+            .conn
+            .query_row(
+                "SELECT id, path, size, format, byte_offset, line_count FROM files WHERE path = ?",
+                params![path],
+                |row| {
+                    Ok(FileRecord {
+                        id: row.get(0)?,
+                        path: row.get(1)?,
+                        size: row.get(2)?,
+                        format: row.get(3)?,
+                        byte_offset: row.get(4)?,
+                        line_count: row.get(5)?,
+                    })
+                },
+            )
+            .ok();
         Ok(result)
     }
 
     /// Get all indexed files
     pub fn get_files(&self) -> Result<Vec<FileRecord>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, size, format, byte_offset, line_count FROM files ORDER BY path"
+            "SELECT id, path, size, format, byte_offset, line_count FROM files ORDER BY path",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(FileRecord {
@@ -448,7 +465,7 @@ impl IndexManager {
             "DELETE FROM log_entries;
              DELETE FROM files;
              INSERT INTO log_entries_fts(log_entries_fts) VALUES('rebuild');
-             PRAGMA optimize;"
+             PRAGMA optimize;",
         )?;
         Ok(())
     }
@@ -467,18 +484,17 @@ impl IndexManager {
 
     /// Remove a project by name and clear file associations
     pub fn remove_project(&self, name: &str) -> Result<bool> {
-        let affected = self.conn.execute(
-            "DELETE FROM projects WHERE name = ?",
-            params![name],
-        )?;
+        let affected = self
+            .conn
+            .execute("DELETE FROM projects WHERE name = ?", params![name])?;
         Ok(affected > 0)
     }
 
     /// Get all projects
     pub fn get_all_projects(&self) -> Result<Vec<ProjectRecord>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, name, path FROM projects ORDER BY name"
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name, path FROM projects ORDER BY name")?;
         let rows = stmt.query_map([], |row| {
             Ok(ProjectRecord {
                 id: row.get(0)?,
@@ -491,17 +507,20 @@ impl IndexManager {
 
     /// Get a project by name
     pub fn get_project_by_name(&self, name: &str) -> Result<Option<ProjectRecord>> {
-        let result = self.conn.query_row(
-            "SELECT id, name, path FROM projects WHERE name = ?",
-            params![name],
-            |row| {
-                Ok(ProjectRecord {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    path: row.get(2)?,
-                })
-            },
-        ).ok();
+        let result = self
+            .conn
+            .query_row(
+                "SELECT id, name, path FROM projects WHERE name = ?",
+                params![name],
+                |row| {
+                    Ok(ProjectRecord {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        path: row.get(2)?,
+                    })
+                },
+            )
+            .ok();
         Ok(result)
     }
 
@@ -517,7 +536,10 @@ impl IndexManager {
         let config_names: Vec<&str> = projects.iter().map(|p| p.name.as_str()).collect();
         if config_names.is_empty() {
             self.conn.execute("DELETE FROM projects", [])?;
-            self.conn.execute("UPDATE files SET project_id = NULL WHERE project_id IS NOT NULL", [])?;
+            self.conn.execute(
+                "UPDATE files SET project_id = NULL WHERE project_id IS NOT NULL",
+                [],
+            )?;
             return Ok(());
         }
 
@@ -530,7 +552,8 @@ impl IndexManager {
             .iter()
             .map(|n| Box::new(n.to_string()) as Box<dyn rusqlite::types::ToSql>)
             .collect();
-        let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|b| b.as_ref()).collect();
+        let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+            params.iter().map(|b| b.as_ref()).collect();
         self.conn.execute(&delete_sql, param_refs.as_slice())?;
 
         // 3. Load all projects from DB (sorted by path length descending for longest-prefix matching)
@@ -548,20 +571,16 @@ impl IndexManager {
         let tx = self.conn.unchecked_transaction()?;
 
         {
-            let mut update_stmt = tx.prepare(
-                "UPDATE files SET project_id = ? WHERE id = ?"
-            )?;
+            let mut update_stmt = tx.prepare("UPDATE files SET project_id = ? WHERE id = ?")?;
 
             for file in &files {
                 // Find the longest matching project path
-                let project_id = sorted_projects.iter().find(|p| {
-                    is_subpath(&p.path, &file.path)
-                }).map(|p| p.id);
+                let project_id = sorted_projects
+                    .iter()
+                    .find(|p| is_subpath(&p.path, &file.path))
+                    .map(|p| p.id);
 
-                update_stmt.execute(params![
-                    project_id,
-                    file.id,
-                ])?;
+                update_stmt.execute(params![project_id, file.id,])?;
             }
         }
 
@@ -577,13 +596,14 @@ impl IndexManager {
             None => return Ok(Vec::new()),
         };
 
-        let mut stmt = self.conn.prepare(
-            "SELECT DISTINCT path FROM files WHERE project_id = ? ORDER BY path"
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT DISTINCT path FROM files WHERE project_id = ? ORDER BY path")?;
 
-        let paths: Vec<String> = stmt.query_map(params![project.id], |row| {
-            row.get::<_, String>(0)
-        })?.filter_map(|r| r.ok()).collect();
+        let paths: Vec<String> = stmt
+            .query_map(params![project.id], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
 
         // Extract first-level subdirectory names relative to project path
         let project_path = normalize_path(&project.path);
@@ -646,8 +666,7 @@ fn is_subpath(dir_path: &str, file_path: &str) -> bool {
     if dir.is_empty() {
         return false;
     }
-    file.starts_with(&dir) && file.len() > dir.len()
-        && file[dir.len()..].starts_with('/')
+    file.starts_with(&dir) && file.len() > dir.len() && file[dir.len()..].starts_with('/')
 }
 
 #[cfg(test)]
@@ -662,8 +681,11 @@ mod tests {
 
     fn test_project(name: &str, path: &str) -> Project {
         Project {
-            name: name.into(), path: path.into(), recursive: true,
-            formats: vec!["auto".into()], encoding: "auto".into(),
+            name: name.into(),
+            path: path.into(),
+            recursive: true,
+            formats: vec!["auto".into()],
+            encoding: "auto".into(),
             exclude_patterns: vec![],
         }
     }
@@ -719,7 +741,10 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/test.log").unwrap();
         let entries = vec![LogEntry {
-            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            id: None,
+            file_id: fid,
+            line_number: 1,
+            byte_offset: 0,
             raw: "2024-01-15 10:23:45 INFO hello world".into(),
         }];
         let inserted = idx.insert_entries(&entries).unwrap();
@@ -735,10 +760,15 @@ mod tests {
     fn test_insert_multiple_entries() {
         let idx = setup();
         let fid = idx.get_or_create_file("/m.log").unwrap();
-        let entries: Vec<LogEntry> = (1..=3).map(|i| LogEntry {
-            id: None, file_id: fid, line_number: i, byte_offset: (i * 100) as u64,
-            raw: format!("2024-01-15 10:23:4{} INFO message {}", i, i),
-        }).collect();
+        let entries: Vec<LogEntry> = (1..=3)
+            .map(|i| LogEntry {
+                id: None,
+                file_id: fid,
+                line_number: i,
+                byte_offset: (i * 100) as u64,
+                raw: format!("2024-01-15 10:23:4{} INFO message {}", i, i),
+            })
+            .collect();
         assert_eq!(idx.insert_entries(&entries).unwrap(), 3);
         assert_eq!(idx.total_entries().unwrap(), 3);
     }
@@ -747,9 +777,13 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/c.log").unwrap();
         idx.insert_entries(&[LogEntry {
-            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            id: None,
+            file_id: fid,
+            line_number: 1,
+            byte_offset: 0,
             raw: "2024-01-15 INFO test".into(),
-        }]).unwrap();
+        }])
+        .unwrap();
         assert_eq!(idx.total_entries().unwrap(), 1);
         idx.clear_file_entries(fid).unwrap();
         assert_eq!(idx.total_entries().unwrap(), 0);
@@ -759,9 +793,13 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/fts.log").unwrap();
         idx.insert_entries(&[LogEntry {
-            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            id: None,
+            file_id: fid,
+            line_number: 1,
+            byte_offset: 0,
             raw: "unique_keyword_fts_test in raw text".into(),
-        }]).unwrap();
+        }])
+        .unwrap();
         // FTS search should find it via raw
         let engine = crate::core::engine::SearchEngine::new(idx.conn());
         let mut q = crate::core::entry::SearchQuery::default();
@@ -802,7 +840,8 @@ mod tests {
     #[test]
     fn test_sync_projects_assigns_files() {
         let idx = setup();
-        idx.get_or_create_file("/data/proj/sub/console.log").unwrap();
+        idx.get_or_create_file("/data/proj/sub/console.log")
+            .unwrap();
         idx.get_or_create_file("/data/proj/info.log").unwrap();
         idx.get_or_create_file("/other/file.log").unwrap();
         let projects = vec![test_project("proj", "/data/proj")];
@@ -859,9 +898,13 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/to-clear.log").unwrap();
         idx.insert_entries(&[LogEntry {
-            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            id: None,
+            file_id: fid,
+            line_number: 1,
+            byte_offset: 0,
             raw: "2024-01-15 INFO msg".into(),
-        }]).unwrap();
+        }])
+        .unwrap();
         idx.clear_all().unwrap();
         assert_eq!(idx.total_entries().unwrap(), 0);
         assert_eq!(idx.total_files().unwrap(), 0);
@@ -883,9 +926,13 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/var/log/app.log").unwrap();
         idx.insert_entries(&[LogEntry {
-            id: None, file_id: fid, line_number: 1, byte_offset: 0,
+            id: None,
+            file_id: fid,
+            line_number: 1,
+            byte_offset: 0,
             raw: "2024-01-15 INFO test".into(),
-        }]).unwrap();
+        }])
+        .unwrap();
         // Update metadata
         idx.update_file(fid, 8192, 2048, 50, "json").unwrap();
         // Verify via get_file_by_path
@@ -907,11 +954,14 @@ mod tests {
         idx.sync_projects(&projects).unwrap();
         // Verify the file's project_id is set correctly
         let p = idx.get_project_by_name("myproj").unwrap().unwrap();
-        let project_id: Option<i64> = idx.conn().query_row(
-            "SELECT project_id FROM files WHERE path = ?",
-            params!["/data/proj/logs/app.log"],
-            |row| row.get(0),
-        ).unwrap();
+        let project_id: Option<i64> = idx
+            .conn()
+            .query_row(
+                "SELECT project_id FROM files WHERE path = ?",
+                params!["/data/proj/logs/app.log"],
+                |row| row.get(0),
+            )
+            .unwrap();
         assert_eq!(project_id, Some(p.id));
     }
     #[test]
@@ -928,11 +978,14 @@ mod tests {
         idx.sync_projects(&projects).unwrap();
         // File should be assigned to proj2 (longest prefix match), not proj
         let proj2 = idx.get_project_by_name("proj2").unwrap().unwrap();
-        let project_id: Option<i64> = idx.conn().query_row(
-            "SELECT project_id FROM files WHERE path = ?",
-            params!["/data/proj2/logs/app.log"],
-            |row| row.get(0),
-        ).unwrap();
+        let project_id: Option<i64> = idx
+            .conn()
+            .query_row(
+                "SELECT project_id FROM files WHERE path = ?",
+                params!["/data/proj2/logs/app.log"],
+                |row| row.get(0),
+            )
+            .unwrap();
         assert_eq!(project_id, Some(proj2.id));
         let proj = idx.get_project_by_name("proj").unwrap().unwrap();
         assert_ne!(project_id, Some(proj.id));
@@ -972,13 +1025,19 @@ mod tests {
     fn test_insert_large_batch() {
         let idx = setup();
         let fid = idx.get_or_create_file("/large.log").unwrap();
-        let entries: Vec<LogEntry> = (0..1500).map(|i| LogEntry {
-            id: None,
-            file_id: fid,
-            line_number: i + 1,
-            byte_offset: (i * 80) as u64,
-            raw: format!("2024-01-15 10:00:{:02} INFO line {} some log content here", i % 60, i),
-        }).collect();
+        let entries: Vec<LogEntry> = (0..1500)
+            .map(|i| LogEntry {
+                id: None,
+                file_id: fid,
+                line_number: i + 1,
+                byte_offset: (i * 80) as u64,
+                raw: format!(
+                    "2024-01-15 10:00:{:02} INFO line {} some log content here",
+                    i % 60,
+                    i
+                ),
+            })
+            .collect();
         let inserted = idx.insert_entries(&entries).unwrap();
         assert_eq!(inserted, 1500);
         assert_eq!(idx.total_entries().unwrap(), 1500);
@@ -988,11 +1047,22 @@ mod tests {
         let idx = setup();
         let fid = idx.get_or_create_file("/fts-delete.log").unwrap();
         idx.insert_entries(&[
-            LogEntry { id: None, file_id: fid, line_number: 1, byte_offset: 0,
-                raw: "fts_delete_keyword_xyz should be findable".into() },
-            LogEntry { id: None, file_id: fid, line_number: 2, byte_offset: 50,
-                raw: "another line with fts_delete_keyword_xyz again".into() },
-        ]).unwrap();
+            LogEntry {
+                id: None,
+                file_id: fid,
+                line_number: 1,
+                byte_offset: 0,
+                raw: "fts_delete_keyword_xyz should be findable".into(),
+            },
+            LogEntry {
+                id: None,
+                file_id: fid,
+                line_number: 2,
+                byte_offset: 50,
+                raw: "another line with fts_delete_keyword_xyz again".into(),
+            },
+        ])
+        .unwrap();
         // FTS search should find both entries
         let engine = crate::core::engine::SearchEngine::new(idx.conn());
         let mut q = crate::core::entry::SearchQuery::default();
@@ -1013,14 +1083,34 @@ mod tests {
         let mut stmt = idx.conn().prepare(
             "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY name"
         ).unwrap();
-        let tables: Vec<(String, String)> = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect();
+        let tables: Vec<(String, String)> = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
         let table_names: Vec<&str> = tables.iter().map(|(n, _)| n.as_str()).collect();
-        assert!(table_names.contains(&"files"), "files table missing. Got: {:?}", table_names);
-        assert!(table_names.contains(&"log_entries"), "log_entries table missing. Got: {:?}", table_names);
+        assert!(
+            table_names.contains(&"files"),
+            "files table missing. Got: {:?}",
+            table_names
+        );
+        assert!(
+            table_names.contains(&"log_entries"),
+            "log_entries table missing. Got: {:?}",
+            table_names
+        );
         // log_entries_fts is a virtual table, should appear in sqlite_master
-        assert!(table_names.contains(&"log_entries_fts"), "log_entries_fts table missing. Got: {:?}", table_names);
-        assert!(table_names.contains(&"projects"), "projects table missing. Got: {:?}", table_names);
+        assert!(
+            table_names.contains(&"log_entries_fts"),
+            "log_entries_fts table missing. Got: {:?}",
+            table_names
+        );
+        assert!(
+            table_names.contains(&"projects"),
+            "projects table missing. Got: {:?}",
+            table_names
+        );
     }
 }

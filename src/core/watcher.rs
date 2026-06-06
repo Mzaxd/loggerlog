@@ -32,7 +32,9 @@ impl FileWatcher {
             move |result: DebounceEventResult| {
                 if let Ok(events) = result {
                     for event in events {
-                        let _ = tx.send(FileChangeEvent { path: event.path.clone() });
+                        let _ = tx.send(FileChangeEvent {
+                            path: event.path.clone(),
+                        });
                     }
                 }
             },
@@ -41,13 +43,21 @@ impl FileWatcher {
 
         for dir in directories {
             if dir.exists() {
-                if let Err(e) = debouncer.watcher().watch(dir, notify::RecursiveMode::Recursive) {
+                if let Err(e) = debouncer
+                    .watcher()
+                    .watch(dir, notify::RecursiveMode::Recursive)
+                {
                     eprintln!("Warning: failed to watch {}: {}", dir.display(), e);
                 }
             }
         }
 
-        Ok((Self { _debouncer: debouncer }, rx))
+        Ok((
+            Self {
+                _debouncer: debouncer,
+            },
+            rx,
+        ))
     }
 }
 

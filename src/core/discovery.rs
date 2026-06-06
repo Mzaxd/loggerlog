@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 pub struct DiscoveredFile {
     pub path: PathBuf,
     pub size: u64,
-    pub group_name: String,  // base name without rotation suffix
+    pub group_name: String, // base name without rotation suffix
     pub is_compressed: bool,
     pub is_rotated: bool,
 }
@@ -69,7 +69,8 @@ impl FileDiscovery {
             }
 
             // Check exclude patterns
-            let file_name = path.file_name()
+            let file_name = path
+                .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
 
@@ -163,7 +164,8 @@ impl FileDiscovery {
         let mut groups: BTreeMap<String, Vec<&DiscoveredFile>> = BTreeMap::new();
 
         for file in files {
-            groups.entry(file.group_name.clone())
+            groups
+                .entry(file.group_name.clone())
                 .or_default()
                 .push(file);
         }
@@ -233,7 +235,8 @@ mod tests {
 
     #[test]
     fn test_analyze_filename_bz2() {
-        let (group, compressed, rotated) = FileDiscovery::analyze_filename("app.log.2024-01-01.bz2");
+        let (group, compressed, rotated) =
+            FileDiscovery::analyze_filename("app.log.2024-01-01.bz2");
         assert_eq!(group, "app.log");
         assert!(compressed);
         assert!(rotated);
@@ -382,7 +385,13 @@ mod tests {
         let files = FileDiscovery::scan_directory(&tmp, false, &["*.txt".to_string()]);
         // app.log passes, debug.log.gz is excluded by extension filter, archive.txt excluded by pattern
         assert_eq!(files.len(), 1);
-        assert!(files[0].path.file_name().unwrap().to_str().unwrap().starts_with("app.log"));
+        assert!(files[0]
+            .path
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .starts_with("app.log"));
 
         let _ = fs::remove_dir_all(&tmp);
     }

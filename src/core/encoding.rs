@@ -34,7 +34,9 @@ pub fn read_file_to_utf8(file_path: &str, encoding_override: Option<&str>) -> St
     // Try UTF-8 first
     if let Ok(content) = std::fs::read_to_string(file_path) {
         // Validate that it's actually valid UTF-8 by checking for replacement chars
-        if !content.contains('\u{FFFD}') || content.chars().count() > 100 && content.matches('\u{FFFD}').count() < 3 {
+        if !content.contains('\u{FFFD}')
+            || content.chars().count() > 100 && content.matches('\u{FFFD}').count() < 3
+        {
             return content;
         }
     }
@@ -105,7 +107,8 @@ pub fn read_file_from_offset(file_path: &str, byte_offset: u64) -> anyhow::Resul
     file.seek(SeekFrom::Start(byte_offset))
         .map_err(|e| anyhow::anyhow!("Failed to seek in {}: {}", file_path, e))?;
     let mut content = String::new();
-    BufReader::new(file).read_to_string(&mut content)
+    BufReader::new(file)
+        .read_to_string(&mut content)
         .map_err(|e| anyhow::anyhow!("Failed to read {}: {}", file_path, e))?;
     Ok(content)
 }
@@ -140,7 +143,11 @@ mod tests {
         std::fs::write(&path, &bytes).unwrap();
         let result = read_file_to_utf8(&path, None);
         // The BOM bytes decode as U+FEFF (ZERO WIDTH NO-BREAK SPACE)
-        assert!(result.starts_with('\u{FEFD}') || result.starts_with('\u{FEFF}') || result.contains(payload));
+        assert!(
+            result.starts_with('\u{FEFD}')
+                || result.starts_with('\u{FEFF}')
+                || result.contains(payload)
+        );
         // Key assertion: the readable payload is preserved
         assert!(result.contains("BOM test content"));
     }
