@@ -13,10 +13,10 @@
 
 ## 安装
 
-### 从源码安装
+### crates.io（推荐）
 
 ```bash
-cargo install --git https://github.com/Mzaxd/loggerlog.git
+cargo install loggerlog
 ```
 
 ### 从源码构建

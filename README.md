@@ -13,10 +13,10 @@ Designed for AI agents (Claude Code, etc.) and daily development troubleshooting
 
 ## Installation
 
-### From Source
+### crates.io (Recommended)
 
 ```bash
-cargo install --git https://github.com/Mzaxd/loggerlog.git
+cargo install loggerlog
 ```
 
 ### Build from Source
