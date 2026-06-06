@@ -204,14 +204,15 @@ If you know the specific file:
 loggerlog tail /var/log/app.log --filter "ERROR"
 ```
 
-## First-Time Setup (3 Steps)
+## First-Time Setup
 
 If the user hasn't configured loggerlog yet, guide them in this order:
 
 ```
-1. loggerlog config add-dir /path/to/logs     # Register log directory
-2. loggerlog index update                      # Build index
-3. loggerlog search "error"                    # Start searching
+1. cargo install loggerlog                      # Install (requires Rust toolchain)
+2. loggerlog config add-dir /path/to/logs     # Register log directory
+3. loggerlog index update                      # Build index
+4. loggerlog search "error"                    # Start searching
 ```
 
 For logs distributed across multiple projects:
