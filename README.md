@@ -1,132 +1,134 @@
 # LoggerLog
 
-轻量级 CLI 日志搜索工具。基于 SQLite FTS5 本地索引，零外部依赖，毫秒级全文搜索。
+A lightweight CLI log search tool. Powered by SQLite FTS5 local indexing with zero external dependencies and millisecond-level full-text search.
 
-专为 AI Agent（Claude Code 等）和日常开发排障场景设计。
+Designed for AI agents (Claude Code, etc.) and daily development troubleshooting.
 
-## 特性
+[中文文档](README.zh-CN.md)
 
-### 核心引擎
-- 🔍 **全文搜索** — SQLite FTS5 索引，支持中文分词，毫秒级响应
-- 📊 **多格式自动检测** — log4j / logback / JSON 结构化 / 纯文本，采样 50 行自动识别
-- 📁 **实时 tail** — 跟随日志文件实时输出，支持级别和关键字过滤
-- 🌍 **编码自动检测** — chardetng + encoding_rs，支持 UTF-8 / GBK / 常见编码
-- 🔧 **增量索引** — 按 byte_offset 增量索引新内容，不重复处理已有数据
-- 📦 **多项目管理** — 注册多个项目根目录，自动按最长前缀匹配文件到项目，子目录识别为模块
+## Features
 
-### AI Agent 友好
-- `--compact` — 一行一条，零装饰，最小化 token 消耗
-- `--summary -S` — 不灌日志，先看摘要（级别分布、来源统计、Top 高频消息、时间范围）
-- `--max-chars N` — 硬截断，UTF-8 安全，防止上下文爆炸
-- `--unique` — 按级别+消息前缀去重，标注重复次数
-- `--exclude` — 排除已知噪音日志（如 heartbeat、health check）
-- `-o json` — 结构化 JSON 输出，供 AI Agent 程序化消费
+### Core Engine
+- 🔍 **Full-text search** — SQLite FTS5 indexing with Chinese tokenization support and millisecond response times
+- 📊 **Multi-format auto-detection** — log4j / logback / JSON structured / plain text, auto-detected with a 50-line sample
+- 📁 **Real-time tail** — Follow log files in real time with level and keyword filtering
+- 🌍 **Encoding auto-detection** — chardetng + encoding_rs for UTF-8 / GBK / common encodings
+- 🔧 **Incremental indexing** — Indexes new content by `byte_offset`, never reprocesses existing data
+- 📦 **Multi-project management** — Register multiple project root directories, auto-match files to projects via longest prefix, subdirectories become modules
 
-### 日志分析增强
-- 🔗 **上下文展开 `-C N`** — 展示匹配行前后各 N 行，理解错误根因
-- 📐 **异常堆栈折叠** — 自动检测并折叠 Java (`\tat`/`Caused by:`)、Python (`File "..."`)、Go (`goroutine`) 的连续堆栈行
-- 📈 **级别统计头部** — Table 输出自动显示各级别分布
-- `--regex` — 正则搜索，支持复杂模式匹配
-- `--output-file <FILE>` — 完整日志写入文件，终端只显示统计
+### AI Agent Friendly
+- `--compact` — One line per entry, zero decoration, minimized token consumption
+- `--summary -S` — See the summary first (level distribution, source stats, top frequent messages, time range) instead of flooding context
+- `--max-chars N` — Hard truncation, UTF-8 safe, prevents context explosion
+- `--unique` — Deduplicate by level + message prefix, annotate repeat counts
+- `--exclude` — Exclude known noise (e.g. heartbeat, health check)
+- `-o json` — Structured JSON output for programmatic consumption by AI agents
 
-### 搜索过滤
-- **FTS5 全文搜索** — 空格分隔多关键字
-- **级别过滤** — `level=ERROR` / `--level ERROR,WARN`
-- **时间范围** — `after=1h-ago` / `after=2024-01-15` / `before=30m-ago`
-- **来源过滤** — `source=app.log` / `--source app.log`
-- **项目/模块** — `project=myapp` / `module=auth-service`
-- **线程/日志器** — `thread=http-nio` / `logger=com.example.Controller`
-- **正则** — `regex:Exception\s+in\s+thread` / `--regex`
-- **排除** — `exclude=health` / `--exclude heartbeat`
+### Log Analysis
+- 🔗 **Context expansion `-C N`** — Show N lines before and after each match to understand error root causes
+- 📐 **Stack trace folding** — Auto-detect and fold consecutive stack lines for Java (`\tat`/`Caused by:`), Python (`File "..."`), and Go (`goroutine`)
+- 📈 **Level statistics header** — Table output auto-displays per-level distribution
+- `--regex` — Regular expression search for complex pattern matching
+- `--output-file <FILE>` — Write full logs to file, show only statistics in terminal
 
-## 快速开始
+### Search Filters
+- **FTS5 full-text search** — Space-separated keywords
+- **Level filter** — `level=ERROR` / `--level ERROR,WARN`
+- **Time range** — `after=1h-ago` / `after=2024-01-15` / `before=30m-ago`
+- **Source filter** — `source=app.log` / `--source app.log`
+- **Project/module** — `project=myapp` / `module=auth-service`
+- **Thread/logger** — `thread=http-nio` / `logger=com.example.Controller`
+- **Regex** — `regex:Exception\s+in\s+thread` / `--regex`
+- **Exclude** — `exclude=health` / `--exclude heartbeat`
+
+## Quick Start
 
 ```bash
 cargo build --release
 
-# 添加日志目录
+# Add log directories
 loggerlog config add-dir /path/to/logs
 
-# 构建索引
+# Build index
 loggerlog index update
 
-# 基本搜索
+# Basic search
 loggerlog search "error timeout"
 loggerlog search "level=ERROR" -n 50
 loggerlog search "level=ERROR,WARN after=1h-ago"
 
-# Compact 格式（AI agent 推荐）
+# Compact format (recommended for AI agents)
 loggerlog search "error" -o compact
 
-# 摘要模式（先看全局）
+# Summary mode (overview first)
 loggerlog search "after=30m-ago" --summary
 
-# JSON 输出（AI agent 消费）
+# JSON output (for AI agent consumption)
 loggerlog search "error" -o json
 ```
 
-## 命令参考
+## Command Reference
 
-### `search` — 搜索日志
+### `search` — Search Logs
 
 ```
 loggerlog search [OPTIONS] [QUERY]
 ```
 
-| 选项 | 说明 |
-|------|------|
-| `-l, --level` | 按级别过滤（可多次指定） |
-| `-s, --source` | 按源文件过滤 |
-| `--project` | 按项目名过滤 |
-| `--module` | 按模块名（子目录）过滤 |
-| `--after` | 只查此时间之后的日志 |
-| `--before` | 只查此时间之前的日志 |
-| `--thread` | 按线程名过滤 |
-| `--regex` | 使用正则搜索 |
-| `-n, --limit` | 最大结果数（默认 100） |
-| `-o, --output` | 输出格式：`table` / `json` / `raw` / `compact`（默认 table） |
-| `-C, --context` | 上下文行数 |
-| `--max-chars` | 输出截断字符数 |
-| `--exclude` | 排除含此关键字的行（可多次指定） |
-| `--unique` | 按级别+消息前缀去重 |
-| `--output-file` | 写入文件而非 stdout |
-| `-S, --summary` | 摘要模式（不输出单条日志） |
-| `--no-sync` | 跳过搜索前自动增量索引 |
+| Option | Description |
+|--------|-------------|
+| `-l, --level` | Filter by log level (can specify multiple) |
+| `-s, --source` | Filter by source file |
+| `--project` | Filter by project name |
+| `--module` | Filter by module name (subdirectory) |
+| `--after` | Only logs after this time |
+| `--before` | Only logs before this time |
+| `--thread` | Filter by thread name |
+| `--regex` | Use regex search |
+| `-n, --limit` | Max results (default 100) |
+| `-o, --output` | Output format: `table` / `json` / `raw` / `compact` (default table) |
+| `-C, --context` | Context lines around matches |
+| `--max-chars` | Output truncation character limit |
+| `--exclude` | Exclude lines containing this keyword (can specify multiple) |
+| `--unique` | Deduplicate by level + message prefix |
+| `--output-file` | Write to file instead of stdout |
+| `-S, --summary` | Summary mode (no individual log lines) |
+| `--no-sync` | Skip auto incremental indexing before search |
 
-### 查询内联语法
+### Inline Query Syntax
 
-搜索字符串中可直接嵌入过滤器（空格分隔）：
+Filters can be embedded directly in the search string (space-separated):
 
 ```
-level=ERROR,WARN       按级别（逗号分隔，大写）
-after=1h-ago           相对时间
-after=2024-01-15T10:30:00Z  绝对时间（RFC3339）
-after=2024-01-15       绝对日期
-after="2024-01-15 10:30:00"  绝对日期时间
-before=...             同上
-source=app.log         按文件名
-project=myapp          按项目名
-module=auth            按模块名
-thread=http-nio        按线程名
-logger=com.example.X   按日志器名
-exclude=heartbeat      排除含此关键字的行
-regex:Exception\s+in  正则搜索前缀
-error timeout          剩余部分作为 FTS 全文查询
+level=ERROR,WARN       By level (comma-separated, uppercase)
+after=1h-ago           Relative time
+after=2024-01-15T10:30:00Z  Absolute time (RFC3339)
+after=2024-01-15       Absolute date
+after="2024-01-15 10:30:00"  Absolute datetime
+before=...             Same as above
+source=app.log         By filename
+project=myapp          By project name
+module=auth            By module name
+thread=http-nio        By thread name
+logger=com.example.X   By logger name
+exclude=heartbeat      Exclude lines with this keyword
+regex:Exception\s+in  Regex search prefix
+error timeout          Remaining text as FTS full-text query
 ```
 
-示例：
+Example:
 ```bash
 loggerlog search "level=ERROR project=myapp module=auth after=1h-ago NullPointerException"
 ```
 
-### `tail` — 实时跟踪
+### `tail` — Real-time Follow
 
 ```bash
 loggerlog tail /var/log/app.log --filter "ERROR"
 loggerlog tail --level WARN --filter "timeout"
 ```
 
-### `config` — 管理配置
+### `config` — Manage Configuration
 
 ```bash
 loggerlog config show
@@ -134,16 +136,16 @@ loggerlog config add-dir /path/to/logs
 loggerlog config remove-dir /path/to/logs
 ```
 
-### `index` — 管理索引
+### `index` — Manage Index
 
 ```bash
-loggerlog index update     # 增量索引
-loggerlog index rebuild    # 全量重建
-loggerlog index compact    # 优化 FTS 索引
-loggerlog index stats      # 查看统计
+loggerlog index update     # Incremental index
+loggerlog index rebuild    # Full rebuild
+loggerlog index compact    # Optimize FTS index
+loggerlog index stats      # View statistics
 ```
 
-### `project` — 管理项目
+### `project` — Manage Projects
 
 ```bash
 loggerlog project add myapp "/path/to/project/logs"
@@ -151,9 +153,9 @@ loggerlog project list
 loggerlog project remove myapp
 ```
 
-## 输出格式
+## Output Formats
 
-### table（默认）
+### table (default)
 ```
 TIMESTAMP            LEVEL  SOURCE      LINE  MESSAGE
 2024-01-15 10:00:30  WARN   /app.log    142   connection timeout after...
@@ -162,7 +164,7 @@ TIMESTAMP            LEVEL  SOURCE      LINE  MESSAGE
 Showing 2 of 2 results (1.2ms)
 ```
 
-### compact（AI Agent 推荐）
+### compact (recommended for AI agents)
 ```
 [2024-01-15T10:00:30Z] [WARN] [/app.log:142] connection timeout after 5s
 [2024-01-15T10:00:00Z] [ERROR] [/app.log:89] NullPointerException: something broke
@@ -187,90 +189,90 @@ Showing 2 of 2 results (1.2ms)
 2024-01-15 10:00:00 ERROR [main] NullPointerException: something broke
 ```
 
-## AI Agent 最佳实践
+## Best Practices for AI Agents
 
-### 场景 1：探索性查询 → 先看摘要
+### Scenario 1: Exploratory Query → Summary First
 
 ```bash
 loggerlog search --summary -t 30m
 ```
 
-输出级别分布、Top 高频错误消息、来源统计，防止低质量查询灌满上下文。
+Outputs level distribution, top frequent error messages, and source statistics — prevents flooding context with low-quality queries.
 
-### 场景 2：精确排障 → 紧凑 + 截断
+### Scenario 2: Precise Troubleshooting → Compact + Truncation
 
 ```bash
 loggerlog search "NullPointerException" -C 3 --max-chars 5000 --exclude health --exclude heartbeat -o compact
 ```
 
-### 场景 3：大规模导出 → 写文件
+### Scenario 3: Large-scale Export → Write to File
 
 ```bash
 loggerlog search "error" -o json --output-file errors.json
 ```
 
-### 场景 4：定期巡检
+### Scenario 4: Periodic Health Check
 
 ```bash
 loggerlog search "level=ERROR,WARN after=1h-ago" --summary
 ```
 
-## 开发
+## Development
 
 ```bash
-cargo build            # 构建（debug）
-cargo build --release  # 构建（release）
-cargo test             # 运行 158 个测试
-cargo run -- --help    # 查看 CLI 帮助
+cargo build            # Debug build
+cargo build --release  # Release build
+cargo test             # Run 158 tests
+cargo run -- --help    # View CLI help
 ```
 
-## 测试覆盖
+## Test Coverage
 
-| 模块 | 测试数 | 覆盖内容 |
-|------|--------|----------|
-| `engine.rs` | 37 | parse_duration/relative_time/take_value, parse_query_string 全部过滤器组合, build_where_clause, search/search_regex 含 FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
-| `index.rs` | 21 | 建表/迁移, files CRUD, entries CRUD, FTS 触发器同步, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
-| `scanner.rs` | 47 | extract_level/timestamp/message/thread/logger 全格式 + JSON, detect_format_hint, 性能测试 |
-| `search.rs` | 30 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line 多语言, extract_exception_class, fold_stack_traces, shorten_path, truncate |
-| `discovery.rs` | 1 | 文件名分析 |
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| `engine.rs` | 37 | parse_duration/relative_time/take_value, parse_query_string all filter combos, build_where_clause, search/search_regex with FTS/level/exclude/limit/offset/file_id, search_summary, level_stats, get_context |
+| `index.rs` | 21 | Table creation/migration, files CRUD, entries CRUD, FTS trigger sync, projects CRUD, sync_projects, modules, normalize_path/is_subpath, compact/clear_all/db_size |
+| `scanner.rs` | 47 | extract_level/timestamp/message/thread/logger all formats + JSON, detect_format_hint, benchmarks |
+| `search.rs` | 30 | collapse_multiline, apply_max_chars, deduplicate_results, is_stack_line multi-language, extract_exception_class, fold_stack_traces, shorten_path, truncate |
+| `discovery.rs` | 1 | Filename analysis |
 
-## 架构
+## Architecture
 
 ```
 src/
-├── cli/                    # CLI 层（clap derive）
-│   ├── mod.rs              # Cli 结构 + 子命令定义
+├── cli/                    # CLI layer (clap derive)
+│   ├── mod.rs              # Cli struct + subcommand definitions
 │   └── commands/
-│       ├── search.rs       # search 子命令 + 所有输出格式
-│       ├── tail.rs         # tail 子命令
-│       ├── config.rs       # config 子命令
-│       ├── index.rs        # index 子命令
-│       └── project.rs      # project 子命令
-├── core/                   # 核心库（零 clap 依赖）
-│   ├── engine.rs           # SearchEngine + 查询构建 + 摘要 + 统计
-│   ├── index.rs            # IndexManager + SQLite schema + 增量索引
-│   ├── entry.rs            # 数据模型（LogEntry, SearchResult, SearchQuery）
-│   ├── scanner.rs          # 日志字段提取 + 格式自动检测（log4j/logback/JSON/plain）
-│   ├── discovery.rs        # FileDiscovery + 轮转识别
-│   ├── encoding.rs         # chardetng 编码检测
-│   ├── watcher.rs          # notify 文件监控
-│   └── config.rs           # TOML 配置管理
-└── main.rs                 # 入口
+│       ├── search.rs       # search subcommand + all output formats
+│       ├── tail.rs         # tail subcommand
+│       ├── config.rs       # config subcommand
+│       ├── index.rs        # index subcommand
+│       └── project.rs      # project subcommand
+├── core/                   # Core library (zero clap dependency)
+│   ├── engine.rs           # SearchEngine + query building + summary + stats
+│   ├── index.rs            # IndexManager + SQLite schema + incremental indexing
+│   ├── entry.rs            # Data models (LogEntry, SearchResult, SearchQuery)
+│   ├── scanner.rs          # Log field extraction + format auto-detection (log4j/logback/JSON/plain)
+│   ├── discovery.rs        # FileDiscovery + rotation detection
+│   ├── encoding.rs         # chardetng encoding detection
+│   ├── watcher.rs          # notify file watcher
+│   └── config.rs           # TOML configuration management
+└── main.rs                 # Entry point
 ```
 
-## 技术栈
+## Tech Stack
 
-| 层 | 技术 | 版本 |
-|----|------|------|
-| 语言 | Rust | stable |
-| 数据库 | SQLite FTS5 | rusqlite 0.32 (bundled) |
+| Layer | Technology | Version |
+|------|------------|---------|
+| Language | Rust | stable |
+| Database | SQLite FTS5 | rusqlite 0.32 (bundled) |
 | CLI | clap | 4 (derive) |
-| 时间 | chrono | 0.4 |
-| 序列化 | serde / serde_json | 1 |
-| 表格 | comfy-table | 7 |
-| 正则 | regex | 1 |
-| 编码 | chardetng + encoding_rs | — |
-| 文件监控 | notify + debouncer-mini | — |
+| Time | chrono | 0.4 |
+| Serialization | serde / serde_json | 1 |
+| Tables | comfy-table | 7 |
+| Regex | regex | 1 |
+| Encoding | chardetng + encoding_rs | — |
+| File watching | notify + debouncer-mini | — |
 
 ## License
 

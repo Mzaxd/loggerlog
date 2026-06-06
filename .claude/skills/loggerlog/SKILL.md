@@ -9,212 +9,212 @@ description: >
   any log investigation task where the user has log files on disk.
 ---
 
-# LoggerLog — 本地日志搜索与分析
+# LoggerLog — Local Log Search & Analysis
 
-loggerlog 是基于 SQLite FTS5 的轻量级 CLI 日志搜索工具，单个 Rust 二进制文件 (`loggerlog` 或 `loggerlog.exe`)。内置索引、全文搜索、实时 tail、多项目管理等能力。
+loggerlog is a lightweight CLI log search tool built on SQLite FTS5, distributed as a single Rust binary (`loggerlog` or `loggerlog.exe`). It provides built-in indexing, full-text search, real-time tail, and multi-project management.
 
-## 架构心智模型
+## Mental Model
 
 ```
-loggerlog config add-dir <dir>   →  注册日志目录
-loggerlog index update           →  扫描文件 → 解析 → 写入 SQLite FTS5 索引
-loggerlog search "query"         →  对索引执行 FTS5 全文搜索 + 过滤器
-loggerlog tail <source>          →  实时跟随文件 (旁路索引，直接读文件)
+loggerlog config add-dir <dir>   →  Register log directories
+loggerlog index update           →  Scan files → Parse → Write to SQLite FTS5 index
+loggerlog search "query"         →  Execute FTS5 full-text search + filters on the index
+loggerlog tail <source>          →  Follow file in real time (bypasses index, reads file directly)
 ```
 
-日志格式会**自动检测**（log4j/logback pattern、JSON 结构化、纯文本），无需手动指定。编码也会自动检测（UTF-8/GBK 等），支持 `.gz` 压缩文件。
+Log formats are **auto-detected** (log4j/logback patterns, JSON structured, plain text) — no manual configuration needed. Encoding is also auto-detected (UTF-8/GBK/etc.), and `.gz` compressed files are supported.
 
-## 子命令速查
+## Command Reference
 
-### `search` — 搜索已索引日志
+### `search` — Search Indexed Logs
 
 ```bash
 loggerlog search [OPTIONS] [QUERY]
 ```
 
-| 选项 | 说明 |
+| Option | Description |
 |---|---|
-| `-l, --level` | 按级别过滤，支持逗号分隔或多次指定 (`-l ERROR,WARN` 或 `-l ERROR -l WARN`) |
-| `-s, --source` | 按源文件名 glob 过滤 |
-| `--project` | 按项目名过滤 |
-| `--module` | 按模块名 (子目录) 过滤 |
-| `--after` | 只查此时间之后 |
-| `--before` | 只查此时间之前 |
-| `--thread` | 按线程名过滤 |
-| `--regex` | 使用正则而非 FTS5 |
-| `-n, --limit` | 最多返回结果数 (默认 100) |
-| `-o, --output` | 输出格式: `table` / `json` / `compact` / `raw` |
-| `-C, --context` | 展示匹配行前后 N 行上下文 |
-| `--max-chars` | 硬截断输出到指定字符数 (UTF-8 安全) |
-| `--exclude` | 排除含此关键字的行 (可多次指定) |
-| `--unique` | 按级别+消息前缀去重，标注重复次数 |
-| `--output-file` | 完整结果写入文件，终端只显示统计摘要 |
-| `-S, --summary` | 摘要模式：仅显示级别分布、Top 消息、来源统计 |
-| `--no-sync` | 跳过搜索前自动增量索引 (大数据集时加速) |
+| `-l, --level` | Filter by log level; supports comma-separated or multiple flags (`-l ERROR,WARN` or `-l ERROR -l WARN`) |
+| `-s, --source` | Filter by source filename glob |
+| `--project` | Filter by project name |
+| `--module` | Filter by module name (subdirectory) |
+| `--after` | Only logs after this time |
+| `--before` | Only logs before this time |
+| `--thread` | Filter by thread name |
+| `--regex` | Use regex instead of FTS5 |
+| `-n, --limit` | Max results to return (default 100) |
+| `-o, --output` | Output format: `table` / `json` / `compact` / `raw` |
+| `-C, --context` | Show N lines of context before and after each match |
+| `--max-chars` | Hard-truncate output at N characters (UTF-8 safe) |
+| `--exclude` | Exclude lines containing this keyword (can specify multiple) |
+| `--unique` | Deduplicate by level + message prefix, annotate repeat count |
+| `--output-file` | Write full results to file, show only stats in terminal |
+| `-S, --summary` | Summary mode: show only level distribution, top messages, source stats |
+| `--no-sync` | Skip auto incremental indexing before search (faster for large datasets) |
 
-#### 查询内联语法 (重要!)
+#### Inline Query Syntax (Important!)
 
-搜索字符串中可以直接嵌入过滤器，用空格分隔：
+Filters can be embedded directly in the search string, space-separated:
 
-| 语法 | 说明 | 示例 |
+| Syntax | Description | Example |
 |---|---|---|
-| `level=ERROR,WARN` | 多级别逗号分隔 (大写) | `level=ERROR` |
-| `after=1h-ago` | 相对时间 | `after=30m-ago` |
-| `after=2024-01-15` | 绝对日期 | `after=2024-01-15` |
-| `after=2024-01-15T10:30:00Z` | RFC3339 时间戳 | — |
-| `after="2024-01-15 10:30:00"` | 日期时间 | — |
-| `before=...` | 同上三种格式 | `before=1h-ago` |
-| `source=app.log` | 按文件名 | `source=server.log` |
-| `project=myapp` | 按项目名 | `project=backend` |
-| `module=auth` | 按模块名 | `module=api` |
-| `thread=http-nio` | 按线程名 | `thread=main` |
-| `logger=com.example.X` | 按日志器名 | `logger=com.example.Controller` |
-| `exclude=heartbeat` | 排除含此关键字的行 | `exclude=health` |
-| `regex:Exception\s+in` | 正则搜索前缀 | `regex:NullPointer` |
-| 其余文字 | 作为 FTS5 全文搜索词 | `timeout connection` |
+| `level=ERROR,WARN` | Multiple levels, comma-separated (uppercase) | `level=ERROR` |
+| `after=1h-ago` | Relative time | `after=30m-ago` |
+| `after=2024-01-15` | Absolute date | `after=2024-01-15` |
+| `after=2024-01-15T10:30:00Z` | RFC3339 timestamp | — |
+| `after="2024-01-15 10:30:00"` | Datetime | — |
+| `before=...` | Same three formats as above | `before=1h-ago` |
+| `source=app.log` | By filename | `source=server.log` |
+| `project=myapp` | By project name | `project=backend` |
+| `module=auth` | By module name | `module=api` |
+| `thread=http-nio` | By thread name | `thread=main` |
+| `logger=com.example.X` | By logger name | `logger=com.example.Controller` |
+| `exclude=heartbeat` | Exclude lines with this keyword | `exclude=health` |
+| `regex:Exception\s+in` | Regex search prefix | `regex:NullPointer` |
+| Remaining text | Used as FTS5 full-text search terms | `timeout connection` |
 
-时间表达式支持: `15m-ago`, `2h-ago`, `3d-ago`, `1w-ago`。
+Time expressions supported: `15m-ago`, `2h-ago`, `3d-ago`, `1w-ago`.
 
-内联语法和 CLI 选项可以同时使用，效果叠加 (AND 逻辑)。
+Inline syntax and CLI flags can be combined — they stack with AND logic.
 
-### `tail` — 实时跟随日志
+### `tail` — Real-time Log Following
 
 ```bash
 loggerlog tail [SOURCE] [OPTIONS]
 ```
 
-| 选项 | 说明 |
+| Option | Description |
 |---|---|
-| `-l, --level` | 按级别过滤 |
-| `-f, --filter` | FTS 关键字过滤 |
-| `-o, --output` | 输出格式 (默认 raw) |
+| `-l, --level` | Filter by log level |
+| `-f, --filter` | FTS keyword filter |
+| `-o, --output` | Output format (default raw) |
 
-SOURCE 可以是文件或目录 (监控目录下所有日志文件)。不指定 SOURCE 时，监控所有已配置的日志源。
+SOURCE can be a file or directory (monitors all log files under the directory). When SOURCE is omitted, monitors all configured log sources.
 
-### `config` — 管理配置
-
-```bash
-loggerlog config show                          # 显示当前配置
-loggerlog config edit                          # 用 $EDITOR 打开配置
-loggerlog config add-dir <PATH>                # 添加日志目录
-loggerlog config add-dir <PATH> --encoding gbk # 指定编码
-loggerlog config remove-dir <PATH>             # 移除日志目录
-```
-
-配置默认保存到 `~/.config/LoggerLog/config.toml`。
-
-### `index` — 管理索引
+### `config` — Manage Configuration
 
 ```bash
-loggerlog index update    # 增量索引 (只处理新/修改的文件)
-loggerlog index rebuild   # 全量重建索引
-loggerlog index compact   # 优化 FTS 索引
-loggerlog index stats     # 查看索引统计 (文件数/条目数/大小)
+loggerlog config show                          # Display current config
+loggerlog config edit                          # Open config in $EDITOR
+loggerlog config add-dir <PATH>                # Add log directory
+loggerlog config add-dir <PATH> --encoding gbk # Specify encoding
+loggerlog config remove-dir <PATH>             # Remove log directory
 ```
 
-搜索前会自动执行增量同步 (除非加 `--no-sync`)。
+Config is saved to `~/.config/LoggerLog/config.toml` by default.
 
-### `project` — 管理多项目
+### `index` — Manage Index
 
 ```bash
-loggerlog project add <NAME> <PATH>             # 注册项目
-loggerlog project add <NAME> <PATH> --recursive # 递归扫描
-loggerlog project list                           # 列出所有项目及其模块
-loggerlog project remove <NAME>                  # 移除项目
+loggerlog index update    # Incremental index (only new/modified files)
+loggerlog index rebuild   # Full index rebuild
+loggerlog index compact   # Optimize FTS index
+loggerlog index stats     # View index statistics (file count / entry count / size)
 ```
 
-项目根目录下的子目录自动识别为**模块** (module)，搜索时可用 `--module` 过滤。
+Incremental sync runs automatically before each search (unless `--no-sync` is specified).
 
-## AI Agent 最佳实践
+### `project` — Multi-Project Management
 
-你是 AI agent，目标是高效地帮用户排障。loggerlog 为此做了很多优化：
+```bash
+loggerlog project add <NAME> <PATH>             # Register project
+loggerlog project add <NAME> <PATH> --recursive # Recursive scan
+loggerlog project list                           # List all projects and their modules
+loggerlog project remove <NAME>                  # Remove project
+```
 
-### 场景 1: 探索性查询 → 先看摘要，再深入
+Subdirectories under a project root are auto-identified as **modules** — filterable with `--module` at search time.
 
-用户说 "帮我看看最近有什么错误" 时，**不要**直接 `search "error"` 灌 100 条日志。先看全局：
+## Best Practices for AI Agents
+
+You are an AI agent; your goal is to help users troubleshoot efficiently. loggerlog is optimized for this:
+
+### Scenario 1: Exploratory Query → Summary First, Then Drill Down
+
+When the user says "check for recent errors," **do not** just `search "error"` and dump 100 log lines. Get the big picture first:
 
 ```bash
 loggerlog search "after=30m-ago" --summary
 ```
 
-这会输出级别分布、Top 高频错误消息、来源统计。如果发现主要集中在 `auth` 模块，再精确查询：
+This outputs level distribution, top frequent error messages, and source statistics. If you see errors concentrated in the `auth` module, drill down:
 
 ```bash
 loggerlog search "level=ERROR module=auth after=30m-ago" -o compact
 ```
 
-### 场景 2: 精确排障 → compact + 截断 + 排除噪音
+### Scenario 2: Precise Troubleshooting → Compact + Truncation + Noise Exclusion
 
-当用户描述了具体错误，你需要精确查找时：
+When the user describes a specific error and you need to find it:
 
 ```bash
 loggerlog search "NullPointerException" -C 3 --max-chars 5000 --exclude heartbeat --exclude healthcheck -o compact
 ```
 
-- `-o compact`: 一行一条，零装饰，token 效率最高
-- `--max-chars 5000`: 硬截断，防止上下文爆炸
-- `--exclude`: 排除已知噪音 (heartbeat、health check 等)
-- `-C 3`: 展示前后 3 行上下文，理解错误根因
+- `-o compact`: One line per entry, zero decoration, maximum token efficiency
+- `--max-chars 5000`: Hard truncation to prevent context explosion
+- `--exclude`: Remove known noise (heartbeat, health check, etc.)
+- `-C 3`: Show 3 lines of context before/after to understand root cause
 
-### 场景 3: 大规模导出 → JSON + 文件
+### Scenario 3: Large-scale Export → JSON + File
 
-需要导出大量日志做离线分析时：
+When you need to export a large volume of logs for offline analysis:
 
 ```bash
 loggerlog search "error" -o json --output-file errors.json
 ```
 
-终端只显示简短统计，完整 JSON 写入文件。后续可以 `Read` 文件内容进行分析。
+Terminal shows only a brief summary; full JSON is written to file. Read the file afterwards for analysis.
 
-### 场景 4: 定期巡检
+### Scenario 4: Periodic Health Check
 
-用户让你 "检查一下最近有没有异常"：
+When the user asks "check if anything unusual happened recently":
 
 ```bash
 loggerlog search "level=ERROR,WARN after=1h-ago" --summary
 ```
 
-先看摘要。如果 ERROR 数量超过预期，再加 `--unique` 去重找高频错误：
+Start with the summary. If the ERROR count is higher than expected, add `--unique` to find frequent errors:
 
 ```bash
 loggerlog search "level=ERROR after=1h-ago" --unique -o compact
 ```
 
-### 场景 5: 上下文分析
+### Scenario 5: Context Analysis
 
-发现一条异常日志后，需要理解上下文：
+After finding an anomaly, you need to understand the surrounding context:
 
 ```bash
 loggerlog search "connection timeout" -C 5 -o compact
 ```
 
-loggerlog 会自动折叠 Java (`\tat`/`Caused by:`)、Python (`File "..."`)、Go (`goroutine`) 的异常堆栈，避免堆栈行占用过多上下文。
+loggerlog auto-folds Java (`\tat`/`Caused by:`), Python (`File "..."`), and Go (`goroutine`) stack traces to prevent stack lines from consuming too much context.
 
-### 场景 6: 实时监控
+### Scenario 6: Real-time Monitoring
 
-用户说 "帮我看一下 app 现在在输出什么"：
+When the user says "watch what the app is outputting right now":
 
 ```bash
 loggerlog tail --filter "ERROR" -l WARN
 ```
 
-如果知道具体文件：
+If you know the specific file:
 
 ```bash
 loggerlog tail /var/log/app.log --filter "ERROR"
 ```
 
-## 初次使用三步曲
+## First-Time Setup (3 Steps)
 
-如果用户还没有配置过 loggerlog，按以下顺序引导：
+If the user hasn't configured loggerlog yet, guide them in this order:
 
 ```
-1. loggerlog config add-dir /path/to/logs     # 注册日志目录
-2. loggerlog index update                      # 构建索引
-3. loggerlog search "error"                    # 开始搜索
+1. loggerlog config add-dir /path/to/logs     # Register log directory
+2. loggerlog index update                      # Build index
+3. loggerlog search "error"                    # Start searching
 ```
 
-如果日志分布在多个项目中：
+For logs distributed across multiple projects:
 
 ```
 1. loggerlog project add backend /path/to/backend/logs
@@ -223,19 +223,19 @@ loggerlog tail /var/log/app.log --filter "ERROR"
 4. loggerlog search --project backend --module auth "error"
 ```
 
-## 输出格式选择指南
+## Output Format Guide
 
-| 场景 | 推荐格式 | 原因 |
+| Scenario | Recommended Format | Reason |
 |---|---|---|
-| AI agent 消费 | `-o compact` | 一行一条，token 最省 |
-| 程序化处理 | `-o json` | 结构化，可解析 |
-| 人类阅读 | `-o table` (默认) | 表格对齐，易于扫读 |
-| 保留原始格式 | `-o raw` | 原样输出，不做处理 |
+| AI agent consumption | `-o compact` | One line per entry, fewest tokens |
+| Programmatic processing | `-o json` | Structured and parseable |
+| Human reading | `-o table` (default) | Aligned table, easy to scan |
+| Preserve raw format | `-o raw` | Original output, no processing |
 
-## 重要注意事项
+## Important Notes
 
-- **搜索前自动同步**: 每次 `search` 会自动执行 `index update` (增量)，确保索引不落后于文件。可以用 `--no-sync` 跳过以加速。
-- **异常堆栈折叠**: 连续堆栈行会被自动折叠成 `[... N stack lines]`，节省上下文。
-- **编码自动检测**: 无需手动指定 UTF-8/GBK，chardetng 自动识别。
-- **日志轮转**: 自动识别 `.1`、`.gz` 等轮转文件，不会重复索引。
-- **数据库位置**: SQLite 索引文件存放在用户配置目录，而非日志目录。
+- **Auto-sync before search**: Every `search` runs an automatic `index update` (incremental) to keep the index in sync with files. Use `--no-sync` to skip for speed.
+- **Stack trace folding**: Consecutive stack lines are auto-folded into `[... N stack lines]` to save context.
+- **Encoding auto-detection**: No need to manually specify UTF-8/GBK — chardetng handles it automatically.
+- **Log rotation**: Auto-detects `.1`, `.gz`, and other rotated files to avoid duplicate indexing.
+- **Database location**: The SQLite index file is stored in the user config directory, not in the log directory.
